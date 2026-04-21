@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tablero Seguimiento Contractual — DAFP OTIC</title>
+  <style>
+    /* ── RESET & BASE ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --azul-osc: #1e3a5f;
+      --azul-med: #2563eb;
+      --azul-cl:  #dbeafe;
+      --verde:    #16a34a;
+      --verde-cl: #dcfce7;
+      --verde-bd: #86efac;
+      --rojo:     #dc2626;
+      --rojo-cl:  #fee2e2;
+      --rojo-bd:  #fca5a5;
+      --amar:     #d97706;
+      --amar-cl:  #fef3c7;
+      --amar-bd:  #fcd34d;
+      --gris:     #6b7280;
+      --gris-cl:  #f1f5f9;
+      --gris-bd:  #d1d5db;
+      --blanco:   #ffffff;
+      --fondo:    #f1f5f9;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--fondo); color: #1e293b; min-height: 100vh; }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, var(--azul-osc) 0%, #1e40af 100%);
+      color: white; padding: 18px 24px;
+    }
+    .header-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; }
+    .header-title { font-size: 10px; font-weight: 700; opacity: .6; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+    .header-h1 { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+    .header-sub { font-size: 11px; opacity: .72; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .kpis { display: flex; gap: 10px; flex-wrap: wrap; }
+    .kpi { background: rgba(255,255,255,.13); border-radius: 10px; padding: 8px 14px; text-align: center; min-width: 88px; }
+    .kpi-val { font-size: 20px; font-weight: 900; }
+    .kpi-label { font-size: 10px; opacity: .8; }
+    .btn-header { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: white; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-size: 12px; font-weight: 600; }
+    .btn-header:hover { background: rgba(255,255,255,.25); }
+
+    /* ── CONFIG PANEL ── */
+    .config-panel { background: rgba(255,255,255,.1); border-radius: 10px; padding: 16px; margin-top: 14px; display: none; }
+    .config-panel.show { display: block; }
+    .config-panel p { font-size: 12px; opacity: .85; margin-bottom: 10px; line-height: 1.6; }
+    .config-row { display: flex; gap: 8px; }
+    .config-input { flex: 1; border: 1px solid rgba(255,255,255,.4); border-radius: 8px; padding: 8px 12px; font-size: 12px; background: rgba(255,255,255,.15); color: white; outline: none; }
+    .config-input::placeholder { color: rgba(255,255,255,.5); }
+    .btn-conectar { background: var(--verde); border: none; color: white; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-weight: 700; font-size: 13px; white-space: nowrap; }
+    .error-msg { color: #fca5a5; font-size: 12px; margin-top: 8px; }
+    .badge-demo { background: rgba(255,200,0,.25); border-radius: 10px; padding: 1px 8px; font-size: 11px; }
+    .badge-ok { background: rgba(0,255,100,.2); border-radius: 10px; padding: 1px 8px; font-size: 11px; }
+
+    /* ── MAIN ── */
+    main { padding: 18px 24px; }
+
+    /* ── SEMÁFORO ── */
+    .semaforo { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 16px; }
+    .sem-card { border-radius: 10px; padding: 10px 14px; text-align: center; cursor: pointer; border: 1px solid; transition: transform .15s; }
+    .sem-card:hover { transform: translateY(-2px); }
+    .sem-card.rojo  { background: var(--rojo-cl); border-color: var(--rojo-bd); color: var(--rojo); }
+    .sem-card.amar  { background: var(--amar-cl); border-color: var(--amar-bd); color: var(--amar); }
+    .sem-card.verde { background: var(--verde-cl); border-color: var(--verde-bd); color: var(--verde); }
+    .sem-card.azul  { background: var(--azul-cl); border-color: #93c5fd; color: var(--azul-med); }
+    .sem-card.gris  { background: var(--gris-cl); border-color: var(--gris-bd); color: var(--gris); }
+    .sem-num  { font-size: 28px; font-weight: 900; }
+    .sem-lbl  { font-size: 11px; font-weight: 600; }
+
+    /* ── FILTROS ── */
+    .filtros { background: white; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .filtros input, .filtros select { border: 1px solid var(--gris-bd); border-radius: 7px; padding: 6px 12px; font-size: 12px; background: white; cursor: pointer; outline: none; }
+    .filtros input { flex: 1; min-width: 180px; }
+    .filtros .count { font-size: 11px; color: var(--gris); font-weight: 600; margin-left: auto; }
+
+    /* ── GRID ── */
+    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .grid.con-detalle { grid-template-columns: 1fr 1fr; }
+    @media (max-width: 768px) { .grid.con-detalle { grid-template-columns: 1fr; } }
+
+    /* ── TARJETA ── */
+    .tarjeta { background: white; border: 2px solid var(--gris-bd); border-radius: 12px; padding: 16px; cursor: pointer; transition: all .2s; }
+    .tarjeta:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+    .tarjeta.activa { border-color: var(--azul-med); box-shadow: 0 0 0 3px var(--azul-cl); }
+    .tarjeta.alerta-critica { border-color: var(--rojo); }
+    .tarjeta.alerta-warn    { border-color: var(--amar); }
+    .tarjeta.ok             { border-color: var(--verde-bd); }
+    .tarjeta-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 8px; }
+    .tarjeta-id { font-weight: 800; font-size: 13px; color: var(--azul-osc); }
+    .tarjeta-sub { font-size: 11px; color: var(--gris); margin-top: 2px; }
+    .tarjeta-objeto { font-size: 12px; color: #374151; margin-bottom: 8px; line-height: 1.45; }
+    .tarjeta-meta { display: flex; gap: 14px; font-size: 11px; flex-wrap: wrap; margin-bottom: 6px; }
+    .tarjeta-meta span b { color: var(--azul-osc); }
+    .badges { display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
+
+    /* ── BADGE ── */
+    .badge { display: inline-block; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 700; white-space: nowrap; border: 1px solid; }
+    .badge-rojo  { background: var(--rojo-cl); color: var(--rojo); border-color: var(--rojo-bd); }
+    .badge-amar  { background: var(--amar-cl); color: var(--amar); border-color: var(--amar-bd); }
+    .badge-verde { background: var(--verde-cl); color: var(--verde); border-color: var(--verde-bd); }
+    .badge-azul  { background: var(--azul-cl);  color: var(--azul-med); border-color: #93c5fd; }
+    .badge-gris  { background: var(--gris-cl);  color: var(--gris); border-color: var(--gris-bd); }
+
+    /* ── PROGRESO ── */
+    .progreso-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--gris); font-weight: 600; margin-bottom: 4px; }
+    .progreso-bar { background: #e5e7eb; border-radius: 10px; height: 7px; margin-bottom: 8px; }
+    .progreso-fill { height: 7px; border-radius: 10px; transition: width .6s; }
+    .etapas-pills { display: flex; gap: 3px; flex-wrap: wrap; }
+    .pill { border-radius: 5px; padding: 2px 7px; font-size: 10px; color: white; font-weight: 700; }
+    .pill-completado { background: var(--verde); }
+    .pill-en-curso   { background: var(--azul-med); }
+    .pill-atrasado   { background: var(--rojo); }
+    .pill-sin-iniciar{ background: #d1d5db; color: #374151; }
+    .pill-suspendido { background: var(--amar); }
+
+    /* ── DETALLE ── */
+    .detalle { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; position: sticky; top: 16px; }
+    .detalle-titulo { font-weight: 800; color: var(--azul-osc); font-size: 15px; margin-bottom: 14px; }
+    .alerta-item { border-radius: 7px; padding: 7px 12px; margin-bottom: 5px; display: flex; gap: 8px; align-items: center; font-size: 12px; font-weight: 500; border: 1px solid; }
+    .alerta-critica { background: var(--rojo-cl); color: var(--rojo); border-color: var(--rojo-bd); }
+    .alerta-warn    { background: var(--amar-cl); color: var(--amar); border-color: var(--amar-bd); }
+    .alerta-ok      { background: var(--verde-cl); color: var(--verde); border-color: var(--verde-bd); }
+    .alerta-info    { background: var(--azul-cl);  color: var(--azul-med); border-color: #93c5fd; }
+    .detalle-sub { font-weight: 700; color: var(--azul-osc); font-size: 14px; margin: 16px 0 10px; }
+    table.etapas-tabla { width: 100%; border-collapse: collapse; font-size: 11px; }
+    table.etapas-tabla th { background: var(--azul-osc); color: white; padding: 7px 10px; text-align: left; font-weight: 700; }
+    table.etapas-tabla td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; }
+    table.etapas-tabla tr:nth-child(even) td { background: #f8fafc; }
+    .obs-box { background: #f8fafc; border-radius: 8px; padding: 10px; font-size: 12px; margin-top: 12px; }
+    .btn-cerrar { width: 100%; margin-top: 10px; background: var(--gris-cl); border: 1px solid var(--gris-bd); border-radius: 8px; padding: 8px; cursor: pointer; font-size: 12px; font-weight: 600; }
+
+    /* ── GUÍA ── */
+    .guia { background: white; border-radius: 12px; padding: 20px; margin-top: 18px; border: 1px dashed #93c5fd; }
+    .guia-title { font-weight: 800; color: var(--azul-osc); font-size: 14px; margin-bottom: 12px; }
+    .guia-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+    .guia-step { background: var(--azul-cl); border-radius: 8px; padding: 12px; }
+    .guia-num { font-size: 22px; font-weight: 900; color: var(--azul-med); margin-bottom: 4px; }
+    .guia-tit { font-weight: 700; font-size: 13px; color: var(--azul-osc); margin-bottom: 4px; }
+    .guia-desc { font-size: 12px; color: #374151; }
+
+    /* ── LEYENDA ── */
+    .leyenda { background: white; border-radius: 10px; padding: 10px 16px; margin-top: 14px; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; font-size: 11px; }
+    .ley-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 5px; }
+    .spin { display: inline-block; animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .empty { background: white; border-radius: 12px; padding: 32px; text-align: center; color: var(--gris); }
+    .empty-icon { font-size: 32px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     HEADER
+═══════════════════════════════════════════════════════════ -->
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="header-title">DAFP — OTIC</div>
+      <div class="header-h1">🗂 Tablero de Seguimiento Contractual</div>
+      <div class="header-sub">
+        <span id="fecha-hoy"></span>
+        <span id="badge-modo" class="badge-demo">⚡ Modo demo</span>
+        <span id="badge-sync" style="display:none" class="badge-ok"></span>
+        <span id="badge-loading" style="display:none">🔄 Sincronizando...</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <div class="kpis" id="kpis"></div>
+      <button class="btn-header" onclick="toggleConfig()">⚙️ Configurar</button>
+      <button class="btn-header" onclick="cargar()">↻ Actualizar</button>
+    </div>
+  </div>
+
+  <!-- Config panel -->
+  <div class="config-panel" id="config-panel">
+    <p>
+      <strong>Cómo obtener la URL de Google Sheets:</strong><br>
+      1. Abre tu Google Sheets → <strong>Archivo → Compartir → Publicar en la web</strong><br>
+      2. Selecciona la hoja <strong>BASE</strong> y formato <strong>CSV</strong> → Publicar<br>
+      3. Copia la URL y pégala aquí:
+    </p>
+    <div class="config-row">
+      <input class="config-input" id="sheets-url" type="text"
+        placeholder="https://docs.google.com/spreadsheets/d/.../pub?...&output=csv"
+        value="" />
+      <button class="btn-conectar" onclick="conectar()">Conectar</button>
+    </div>
+    <div class="error-msg" id="error-msg"></div>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════
+     MAIN
+═══════════════════════════════════════════════════════════ -->
+<main>
+  <div class="semaforo" id="semaforo"></div>
+  <div class="filtros">
+    <input type="text" id="busqueda" placeholder="🔍 Buscar proceso u objeto..." oninput="renderizar()" />
+    <select id="f-estado" onchange="renderizar()"><option>Todos</option></select>
+    <select id="f-mes" onchange="renderizar()"><option>Todos</option></select>
+    <select id="f-resp" onchange="renderizar()"><option>Todos</option></select>
+    <span class="count" id="count-label"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="guia" id="guia" style="display:none">
+    <div class="guia-title">📖 Conecta tu Google Sheets en 4 pasos</div>
+    <div class="guia-grid">
+      <div class="guia-step"><div class="guia-num">01</div><div class="guia-tit">Crea la hoja</div><div class="guia-desc">Descarga la plantilla Excel y súbela a Google Drive. Ábrela con Google Sheets.</div></div>
+      <div class="guia-step"><div class="guia-num">02</div><div class="guia-tit">Agrega tus datos</div><div class="guia-desc">Completa los procesos desde la fila 4. Respeta los formatos de fecha y estado.</div></div>
+      <div class="guia-step"><div class="guia-num">03</div><div class="guia-tit">Publica como CSV</div><div class="guia-desc">Archivo → Compartir → Publicar en la web → Hoja BASE → CSV → Publicar.</div></div>
+      <div class="guia-step"><div class="guia-num">04</div><div class="guia-tit">Conecta el tablero</div><div class="guia-desc">Clic en ⚙️ Configurar, pega la URL generada y haz clic en Conectar.</div></div>
+    </div>
+  </div>
+  <div class="leyenda">
+    <strong style="color:var(--azul-osc)">Leyenda:</strong>
+    <span><span class="ley-dot" style="background:var(--rojo)"></span>Crítico (vencido o ≤3 días)</span>
+    <span><span class="ley-dot" style="background:var(--amar)"></span>Advertencia (4–7 días)</span>
+    <span><span class="ley-dot" style="background:var(--verde)"></span>Normal (>7 días)</span>
+    <span><span class="ley-dot" style="background:var(--azul-med)"></span>En curso</span>
+    <span style="margin-left:auto;color:var(--gris)">🔄 Auto-actualización cada 5 min</span>
+  </div>
+</main>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// CONFIGURACIÓN
+// ══════════════════════════════════════════════════════════
+let SHEETS_URL = localStorage.getItem('sheets_url') || '';
+let procesos = [];
+let seleccionado = null;
+let modoDemo = true;
+let autoInterval = null;
+const HOY = new Date();
+
+const ETAPAS = [
+  { id: 'actividades_previas', label: 'Act. Previas',   icono: '📋' },
+  { id: 'solicitud_info',      label: 'Solicitud Info', icono: '📨' },
+  { id: 'secop',               label: 'SECOP',          icono: '🔗' },
+  { id: 'documentos',          label: 'Documentos',     icono: '📁' },
+  { id: 'evaluacion',          label: 'Evaluación',     icono: '⚖️' },
+  { id: 'adjudicacion',        label: 'Adjudicación',   icono: '✅' },
+];
+
+const DATOS_DEMO = [
+  { id:1, mes:'Marzo', proceso:'DAFP-MC-007-2026', modalidad:'Mínima Cuantía',
+    objeto:'Suministro de elementos de oficina y papelería para el DAFP',
+    presupuesto:47852919, responsable:'David Guarin', plazo_total:'2026-04-20',
+    secop_id:'DAFP-SIP-014-2026', estado_general:'En curso',
+    observaciones:'Pendiente respuesta grupo de contratación',
+    etapas:{ actividades_previas:{estado:'Completado',fecha_fin:'2026-03-03'},
+             solicitud_info:{estado:'Completado',fecha_fin:'2026-03-10'},
+             secop:{estado:'En curso',fecha_fin:'2026-04-18'},
+             documentos:{estado:'En curso',fecha_fin:'2026-04-19'},
+             evaluacion:{estado:'Sin iniciar',fecha_fin:'2026-04-20'},
+             adjudicacion:{estado:'Sin iniciar',fecha_fin:'2026-04-20'} } },
+  { id:2, mes:'Abril', proceso:'DAFP-SA-012-2026', modalidad:'Selección Abreviada',
+    objeto:'Adecuación y modernización de cableado estructurado DAFP',
+    presupuesto:48929656, responsable:'Mishelle Fuentes', plazo_total:'2026-05-30',
+    secop_id:'DAFP-SIP-022-2026', estado_general:'Atrasado',
+    observaciones:'SECOP con retraso — grupo de contratación pendiente',
+    etapas:{ actividades_previas:{estado:'Completado',fecha_fin:'2026-03-15'},
+             solicitud_info:{estado:'Completado',fecha_fin:'2026-03-25'},
+             secop:{estado:'Atrasado',fecha_fin:'2026-04-05'},
+             documentos:{estado:'Sin iniciar',fecha_fin:'2026-04-20'},
+             evaluacion:{estado:'Sin iniciar',fecha_fin:'2026-05-10'},
+             adjudicacion:{estado:'Sin iniciar',fecha_fin:'2026-05-30'} } },
+  { id:3, mes:'Abril', proceso:'DAFP-MC-015-2026', modalidad:'Mínima Cuantía',
+    objeto:'Mantenimiento preventivo equipos Datacenter OTIC',
+    presupuesto:48059601, responsable:'Diego Villamizar', plazo_total:'2026-04-25',
+    secop_id:'', estado_general:'En curso', observaciones:'',
+    etapas:{ actividades_previas:{estado:'En curso',fecha_fin:'2026-04-16'},
+             solicitud_info:{estado:'Sin iniciar',fecha_fin:'2026-04-17'},
+             secop:{estado:'Sin iniciar',fecha_fin:'2026-04-18'},
+             documentos:{estado:'Sin iniciar',fecha_fin:'2026-04-20'},
+             evaluacion:{estado:'Sin iniciar',fecha_fin:'2026-04-22'},
+             adjudicacion:{estado:'Sin iniciar',fecha_fin:'2026-04-25'} } },
+];
+
+// ══════════════════════════════════════════════════════════
+// UTILIDADES
+// ══════════════════════════════════════════════════════════
+function diasRestantes(fecha) {
+  if (!fecha) return null;
+  const f = new Date(fecha);
+  if (isNaN(f)) return null;
+  return Math.ceil((f - HOY) / 86400000);
+}
+function alertColor(d) {
+  if (d === null) return 'gris';
+  if (d < 0 || d <= 3) return 'rojo';
+  if (d <= 7) return 'amar';
+  return 'verde';
+}
+function fmtPeso(n) { return '$' + Number(n).toLocaleString('es-CO'); }
+function pillClass(estado) {
+  const m = { 'Completado':'completado','En curso':'en-curso','Atrasado':'atrasado','Sin iniciar':'sin-iniciar','Suspendido':'suspendido' };
+  return 'pill pill-' + (m[estado] || 'sin-iniciar');
+}
+function badgeClass(estado) {
+  const m = { 'Completado':'badge badge-verde','En curso':'badge badge-azul','Atrasado':'badge badge-rojo','Suspendido':'badge badge-amar','Sin iniciar':'badge badge-gris','Presentacion de ofertas':'badge badge-azul' };
+  return m[estado] || 'badge badge-gris';
+}
+
+function generarAlertas(p) {
+  const a = [];
+  const d = diasRestantes(p.plazo_total);
+  if (d !== null && d < 0)    a.push({t:'critica', m:`Plazo total VENCIDO hace ${Math.abs(d)} días`});
+  else if (d !== null && d<=3) a.push({t:'critica', m:`Plazo total vence en ${d} día(s)`});
+  else if (d !== null && d<=7) a.push({t:'warn',    m:`Plazo total vence en ${d} días`});
+
+  ETAPAS.forEach(et => {
+    const e = p.etapas[et.id];
+    if (!e) return;
+    if (e.estado === 'Atrasado') a.push({t:'critica', m:`${et.label}: marcada como ATRASADA`});
+    const df = diasRestantes(e.fecha_fin);
+    if (e.estado === 'En curso' && df !== null) {
+      if (df < 0) a.push({t:'critica', m:`${et.label}: fecha límite vencida hace ${Math.abs(df)} días`});
+      else if (df <= 3) a.push({t:'warn', m:`${et.label}: vence en ${df} días`});
+    }
+    if (e.estado === 'Sin iniciar' && df !== null && df <= 5)
+      a.push({t:'warn', m:`${et.label}: sin iniciar, fecha límite en ${df} días`});
+  });
+  if (!p.secop_id) a.push({t:'warn', m:'Sin ID SECOP asignado'});
+  if (a.length === 0) a.push({t:'ok', m:'Sin alertas pendientes ✓'});
+  return a;
+}
+
+function progreso(etapas) {
+  const total = ETAPAS.length;
+  const comp = ETAPAS.filter(e => etapas[e.id]?.estado === 'Completado').length;
+  return Math.round((comp / total) * 100);
+}
+
+// ══════════════════════════════════════════════════════════
+// CSV PARSER
+// ══════════════════════════════════════════════════════════
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim());
+  return lines.slice(1).filter(l => l.trim()).map((line, i) => {
+    // Handle quoted fields with commas
+    const cols = [];
+    let cur = '', inQ = false;
+    for (const ch of line) {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    cols.push(cur.trim());
+    const obj = {};
+    headers.forEach((h, j) => obj[h] = (cols[j] || '').replace(/^"|"$/g,'').trim());
+    return {
+      id: i + 1,
+      mes: obj.mes || '',
+      proceso: obj.proceso || '',
+      modalidad: obj.modalidad || '',
+      objeto: obj.objeto || '',
+      presupuesto: parseFloat((obj.presupuesto || '0').replace(/\D/g,'')) || 0,
+      responsable: obj.responsable || '',
+      plazo_total: obj.plazo_total || '',
+      secop_id: obj.secop_id || '',
+      estado_general: obj.estado_general || 'Sin iniciar',
+      observaciones: obj.observaciones || '',
+      etapas: {
+        actividades_previas: { estado: obj.estado_actividades_previas || 'Sin iniciar', fecha_fin: obj.fecha_fin_actividades_previas || '' },
+        solicitud_info:      { estado: obj.estado_solicitud_info      || 'Sin iniciar', fecha_fin: obj.fecha_fin_solicitud_info      || '' },
+        secop:               { estado: obj.estado_secop               || 'Sin iniciar', fecha_fin: obj.fecha_fin_secop               || '' },
+        documentos:          { estado: obj.estado_documentos          || 'Sin iniciar', fecha_fin: obj.fecha_fin_documentos          || '' },
+        evaluacion:          { estado: obj.estado_evaluacion          || 'Sin iniciar', fecha_fin: obj.fecha_fin_evaluacion          || '' },
+        adjudicacion:        { estado: obj.estado_adjudicacion        || 'Sin iniciar', fecha_fin: obj.fecha_fin_adjudicacion        || '' },
+      }
+    };
+  }).filter(p => p.proceso);
+}
+
+// ══════════════════════════════════════════════════════════
+// CARGA DATOS
+// ══════════════════════════════════════════════════════════
+async function cargar() {
+  const url = SHEETS_URL;
+  if (!url) { usarDemo(); return; }
+  document.getElementById('badge-loading').style.display = 'inline';
+  document.getElementById('error-msg').textContent = '';
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const datos = parseCSV(text);
+    if (!datos.length) throw new Error('Hoja vacía o sin el formato correcto');
+    procesos = datos;
+    modoDemo = false;
+    document.getElementById('badge-modo').style.display = 'none';
+    const sync = document.getElementById('badge-sync');
+    sync.style.display = 'inline';
+    sync.textContent = '✅ Actualizado ' + new Date().toLocaleTimeString('es-CO');
+  } catch(e) {
+    document.getElementById('error-msg').textContent = '❌ ' + e.message;
+    if (!procesos.length) usarDemo();
+  } finally {
+    document.getElementById('badge-loading').style.display = 'none';
+  }
+  renderizar();
+}
+
+function usarDemo() {
+  procesos = DATOS_DEMO;
+  modoDemo = true;
+  document.getElementById('badge-modo').style.display = 'inline';
+  document.getElementById('badge-sync').style.display = 'none';
+  renderizar();
+}
+
+function conectar() {
+  const url = document.getElementById('sheets-url').value.trim();
+  if (!url) return;
+  SHEETS_URL = url;
+  localStorage.setItem('sheets_url', url);
+  cargar();
+}
+
+function toggleConfig() {
+  const p = document.getElementById('config-panel');
+  p.classList.toggle('show');
+  if (SHEETS_URL) document.getElementById('sheets-url').value = SHEETS_URL;
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════════
+function renderizar() {
+  const busq = document.getElementById('busqueda').value.toLowerCase();
+  const fEst = document.getElementById('f-estado').value;
+  const fMes = document.getElementById('f-mes').value;
+  const fRes = document.getElementById('f-resp').value;
+
+  // Poblar selects
+  poblarSelect('f-estado', ['Todos','En curso','Atrasado','Completado','Suspendido','Sin iniciar'], fEst);
+  poblarSelect('f-mes', ['Todos',...new Set(procesos.map(p=>p.mes))], fMes);
+  poblarSelect('f-resp', ['Todos',...new Set(procesos.map(p=>p.responsable))], fRes);
+
+  const filtrados = procesos.filter(p =>
+    (fEst==='Todos' || p.estado_general===fEst) &&
+    (fMes==='Todos' || p.mes===fMes) &&
+    (fRes==='Todos' || p.responsable===fRes) &&
+    (!busq || p.proceso.toLowerCase().includes(busq) || p.objeto.toLowerCase().includes(busq))
+  );
+
+  // KPIs
+  const criticas = procesos.reduce((a,p)=>a+generarAlertas(p).filter(x=>x.t==='critica').length, 0);
+  const warns    = procesos.reduce((a,p)=>a+generarAlertas(p).filter(x=>x.t==='warn').length, 0);
+  const presup   = procesos.reduce((a,p)=>a+p.presupuesto, 0);
+  document.getElementById('kpis').innerHTML = [
+    {l:'Procesos', v:procesos.length, c:'#bfdbfe'},
+    {l:'🚨 Críticas', v:criticas, c:'#fca5a5'},
+    {l:'⚠️ Advertencias', v:warns, c:'#fcd34d'},
+    {l:'Presupuesto', v:'$'+(presup/1e6).toFixed(1)+'M', c:'#a7f3d0'},
+  ].map(k=>`<div class="kpi"><div class="kpi-val" style="color:${k.c}">${k.v}</div><div class="kpi-label">${k.l}</div></div>`).join('');
+
+  // Semáforo
+  document.getElementById('semaforo').innerHTML = [
+    {cl:'rojo',  lbl:'Con alertas críticas', n:procesos.filter(p=>generarAlertas(p).some(a=>a.t==='critica')).length},
+    {cl:'amar',  lbl:'Con advertencias',     n:procesos.filter(p=>!generarAlertas(p).some(a=>a.t==='critica')&&generarAlertas(p).some(a=>a.t==='warn')).length},
+    {cl:'verde', lbl:'Sin alertas',          n:procesos.filter(p=>generarAlertas(p).every(a=>a.t==='ok')).length},
+    {cl:'azul',  lbl:'En curso',             n:procesos.filter(p=>p.estado_general==='En curso').length},
+    {cl:'gris',  lbl:'Completados',          n:procesos.filter(p=>p.estado_general==='Completado').length},
+  ].map(s=>`<div class="sem-card ${s.cl}"><div class="sem-num">${s.n}</div><div class="sem-lbl">${s.lbl}</div></div>`).join('');
+
+  document.getElementById('count-label').textContent = `${filtrados.length} proceso${filtrados.length!==1?'s':''}`;
+
+  // Grid
+  const grid = document.getElementById('grid');
+  const conDetalle = seleccionado !== null;
+  grid.className = 'grid' + (conDetalle ? ' con-detalle' : '');
+
+  let html = '<div style="display:flex;flex-direction:column;gap:12px">';
+  if (!filtrados.length) {
+    html += `<div class="empty"><div class="empty-icon">🔍</div><div style="font-weight:600">Sin resultados con los filtros aplicados</div></div>`;
+  } else {
+    filtrados.forEach(p => { html += tarjetaHTML(p); });
+  }
+  html += '</div>';
+
+  if (conDetalle) {
+    const p = procesos.find(x => x.id === seleccionado);
+    if (p) html += detalleHTML(p);
+  }
+
+  grid.innerHTML = html;
+
+  // Guía demo
+  document.getElementById('guia').style.display = modoDemo ? 'block' : 'none';
+
+  // Fecha
+  document.getElementById('fecha-hoy').textContent = '📅 ' + HOY.toLocaleDateString('es-CO', {dateStyle:'full'});
+
+  // Event listeners tarjetas
+  document.querySelectorAll('.tarjeta').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = parseInt(el.dataset.id);
+      seleccionado = seleccionado === id ? null : id;
+      renderizar();
+    });
+  });
+  document.querySelector('.btn-cerrar')?.addEventListener('click', e => {
+    e.stopPropagation(); seleccionado = null; renderizar();
+  });
+}
+
+function poblarSelect(id, opts, actual) {
+  const sel = document.getElementById(id);
+  const cur = sel.value || actual;
+  sel.innerHTML = opts.map(o=>`<option${o===cur?' selected':''}>${o}</option>`).join('');
+}
+
+function tarjetaHTML(p) {
+  const alertas = generarAlertas(p);
+  const criticas = alertas.filter(a=>a.t==='critica').length;
+  const warns = alertas.filter(a=>a.t==='warn').length;
+  const dias = diasRestantes(p.plazo_total);
+  const pct = progreso(p.etapas);
+  const colPct = pct===100?'var(--verde)':pct>=50?'var(--azul-med)':'var(--amar)';
+  const activo = seleccionado === p.id;
+  let tarjetaClass = 'tarjeta';
+  if (activo) tarjetaClass += ' activa';
+  else if (criticas > 0) tarjetaClass += ' alerta-critica';
+  else if (warns > 0) tarjetaClass += ' alerta-warn';
+  else tarjetaClass += ' ok';
+
+  const dLabel = dias===null ? '' : dias>=0 ? `(${dias}d restantes)` : `(vencido ${Math.abs(dias)}d)`;
+  const dColor = `color:var(--${alertColor(dias)})`;
+
+  const pillsHTML = ETAPAS.map(et => {
+    const e = p.etapas[et.id];
+    return `<span class="${pillClass(e?.estado||'Sin iniciar')}">${et.icono} ${et.label}</span>`;
+  }).join('');
+
+  return `
+  <div class="${tarjetaClass}" data-id="${p.id}">
+    <div class="tarjeta-top">
+      <div>
+        <div class="tarjeta-id">${p.proceso}</div>
+        <div class="tarjeta-sub">${p.modalidad} · ${p.mes} · ${p.responsable}</div>
+      </div>
+      <div class="badges">
+        <span class="${badgeClass(p.estado_general)}">${p.estado_general}</span>
+        ${criticas>0?`<span class="badge badge-rojo">🚨 ${criticas}</span>`:''}
+        ${warns>0?`<span class="badge badge-amar">⚠️ ${warns}</span>`:''}
+      </div>
+    </div>
+    <div class="tarjeta-objeto">${p.objeto}</div>
+    <div class="tarjeta-meta">
+      <span>Presupuesto: <b>${fmtPeso(p.presupuesto)}</b></span>
+      <span>Plazo: <b style="${dColor}">${p.plazo_total||'—'} ${dLabel}</b></span>
+      ${p.secop_id?`<span>SECOP: <b>${p.secop_id}</b></span>`:''}
+    </div>
+    <div class="progreso-label"><span>Avance</span><span style="font-weight:800;color:${colPct}">${pct}%</span></div>
+    <div class="progreso-bar"><div class="progreso-fill" style="width:${pct}%;background:${colPct}"></div></div>
+    <div class="etapas-pills">${pillsHTML}</div>
+  </div>`;
+}
+
+function detalleHTML(p) {
+  const alertas = generarAlertas(p);
+  const alertasHTML = alertas.map(a => {
+    const cls = a.t==='critica'?'alerta-critica':a.t==='warn'?'alerta-warn':a.t==='ok'?'alerta-ok':'alerta-info';
+    const ico = a.t==='critica'?'🚨':a.t==='warn'?'⚠️':a.t==='ok'?'✅':'ℹ️';
+    return `<div class="alerta-item ${cls}">${ico} ${a.m}</div>`;
+  }).join('');
+
+  const etapasHTML = ETAPAS.map((et,i) => {
+    const e = p.etapas[et.id];
+    const dias = diasRestantes(e?.fecha_fin);
+    const col = e?.estado==='Completado'?'var(--verde)':e?.estado==='Atrasado'?'var(--rojo)':e?.estado==='En curso'?'var(--azul-med)':'var(--gris)';
+    const dBadge = dias===null ? '—' : dias>=0
+      ? `<span class="badge badge-${alertColor(dias)}">${dias}d</span>`
+      : `<span class="badge badge-rojo">Vencido ${Math.abs(dias)}d</span>`;
+    return `<tr style="${i%2===0?'background:#f8fafc':''}">
+      <td>${et.icono} ${et.label}</td>
+      <td style="color:${col};font-weight:700">${e?.estado||'Sin iniciar'}</td>
+      <td style="color:var(--gris)">${e?.fecha_fin||'—'}</td>
+      <td>${dBadge}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div>
+    <div class="detalle">
+      <div class="detalle-titulo">🔔 Alertas — ${p.proceso}</div>
+      ${alertasHTML}
+      <div class="detalle-sub">📅 Etapas del proceso</div>
+      <table class="etapas-tabla">
+        <thead><tr><th>Etapa</th><th>Estado</th><th>Fecha límite</th><th>Días</th></tr></thead>
+        <tbody>${etapasHTML}</tbody>
+      </table>
+      ${p.observaciones?`<div class="obs-box"><strong>📝 Observaciones:</strong> ${p.observaciones}</div>`:''}
+      <button class="btn-cerrar">✕ Cerrar detalle</button>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  if (SHEETS_URL) {
+    document.getElementById('sheets-url').value = SHEETS_URL;
+    cargar();
+  } else {
+    usarDemo();
+  }
+  // Auto-refresh cada 5 minutos
+  setInterval(cargar, 5 * 60 * 1000);
+});
+</script>
+</body>
+</html>
