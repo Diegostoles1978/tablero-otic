@@ -3,131 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DAFP - OTIC 2026</title>
+    <title>Seguimiento OTIC 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .card-shadow { shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3); }
-    </style>
 </head>
-<body class="bg-[#0f172a] text-slate-200 font-sans min-h-screen pb-20">
+<body class="bg-slate-950 text-slate-200 min-h-screen pb-10">
 
-    <header class="bg-[#1e293b] border-b border-slate-700 p-6 mb-8 sticky top-0 z-50 shadow-xl">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+    <header class="bg-slate-900 border-b border-slate-800 p-6 mb-8 sticky top-0 z-50 shadow-2xl">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div>
-                <h1 class="text-2xl font-black text-white tracking-tight">SEGUIMIENTO CONTRACTUAL OTIC</h1>
-                <p class="text-indigo-400 text-xs font-bold uppercase tracking-widest">DAFP — Función Pública 2026</p>
+                <h1 class="text-xl font-black text-white tracking-tighter">DAFP — OTIC 2026</h1>
+                <p class="text-indigo-400 text-[10px] font-bold uppercase tracking-[0.2em]">Gestión Contractual Estratégica</p>
             </div>
             <div class="flex gap-2">
-                <button onclick="configurar()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-sm font-bold transition-all shadow-lg flex items-center gap-2">
-                    <i class="fas fa-link"></i> Vincular Datos
-                </button>
-                <button onclick="location.reload()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-xl transition-all shadow-md">
-                    <i class="fas fa-sync-alt"></i>
+                <button onclick="configurar()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2">
+                    <i class="fas fa-database"></i> Vincular CSV
                 </button>
             </div>
         </div>
     </header>
 
-    <div id="configPanel" class="hidden max-w-7xl mx-auto mb-10 px-6 animate-fade-in">
-        <div class="bg-indigo-900/20 border border-indigo-500/50 p-6 rounded-2xl backdrop-blur-md">
-            <h2 class="text-indigo-300 text-xs font-black mb-3 uppercase tracking-widest">Configuración de Google Sheets</h2>
-            <div class="flex flex-col md:flex-row gap-3">
-                <input type="text" id="csvUrl" placeholder="Pega el enlace CSV de Google Sheets aquí..." class="flex-1 bg-slate-900/80 border border-slate-700 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-indigo-100">
-                <button onclick="guardarConfig()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl font-black transition-all shadow-lg">CONECTAR</button>
-            </div>
+    <div id="configPanel" class="hidden max-w-7xl mx-auto mb-8 px-6">
+        <div class="bg-slate-900 border border-indigo-500/50 p-4 rounded-xl">
+            <input type="text" id="csvUrl" placeholder="Pega el enlace finalizado en &output=csv" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-indigo-100 outline-none focus:border-indigo-500">
+            <button onclick="guardarConfig()" class="mt-3 w-full bg-indigo-600 py-2 rounded-lg font-bold text-sm">Actualizar Conexión</button>
         </div>
     </div>
 
-    <main class="max-w-7xl mx-auto px-6">
-        <div id="tablero" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-slate-400">
-            <div class="col-span-full text-center py-20 opacity-50">
-                <i class="fas fa-database text-4xl mb-4"></i>
-                <p>Esperando conexión con la hoja BASE...</p>
-            </div>
-        </div>
-    </main>
+    <main class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="tablero">
+        </main>
 
     <script>
+        // Función especial para leer CSV con comas internas
+        function parseCSVLine(text) {
+            const result = [];
+            let cur = '';
+            let inQuote = false;
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                if (char === '"') inQuote = !inQuote;
+                else if (char === ',' && !inQuote) {
+                    result.push(cur.trim());
+                    cur = '';
+                } else cur += char;
+            }
+            result.push(cur.trim());
+            return result;
+        }
+
         async function render() {
-            const url = localStorage.getItem('dafp_csv_url');
+            const url = localStorage.getItem('dafp_otic_url');
             if (!url) return;
 
             try {
                 const res = await fetch(url);
                 const text = await res.text();
-                // Omitir las 2 primeras filas (Título y encabezados secundarios)
-                const filas = text.split('\n').slice(2); 
+                // Saltamos las 2 primeras filas (Título y Encabezados)
+                const filas = text.split(/\r?\n/).slice(2); 
                 const container = document.getElementById('tablero');
                 container.innerHTML = '';
 
                 filas.forEach(fila => {
-                    const c = fila.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+                    const c = parseCSVLine(fila);
                     if (c.length < 10 || !c[2]) return;
 
-                    // Mapeo basado en tu CSV:
-                    // 1: Mes, 2: Nombre, 3: Modalidad, 4: Presupuesto, 6: Responsable, 7: F. Límite Ficha, 8: Estado Gral
-                    const presupuesto = c[4]?.replace(/[$.]/g, '') || "0";
-                    const estado = c[8]?.trim();
-                    const colorBorde = estado === 'Atrasado' ? 'border-t-rose-500' : 'border-t-indigo-500';
-                    const colorTextoEstado = estado === 'Atrasado' ? 'text-rose-400' : 'text-emerald-400';
+                    // MAPEÓ EXACTO SEGÚN TU ARCHIVO:
+                    // c[1]: Mes, c[2]: Nombre, c[3]: Modalidad, c[4]: Presupuesto,
+                    // c[6]: Responsable, c[7]: Fecha Límite, c[8]: Estado General
+                    
+                    const valor = parseInt(c[4]) || 0;
+                    const estado = c[8] || 'Pendiente';
+                    const colorClase = estado === 'Atrasado' ? 'border-rose-500 bg-rose-500/5' : 'border-indigo-500 bg-slate-900';
 
                     container.innerHTML += `
-                        <div class="bg-[#1e293b] border-t-4 ${colorBorde} rounded-2xl p-6 shadow-2xl flex flex-col justify-between hover:translate-y-[-4px] transition-all duration-300">
+                        <div class="border-l-4 ${colorClase} p-5 rounded-r-2xl shadow-lg flex flex-col justify-between min-h-[250px]">
                             <div>
-                                <div class="flex justify-between items-start mb-4">
-                                    <span class="bg-slate-900/50 text-[10px] font-black px-3 py-1 rounded-lg text-indigo-400 border border-indigo-500/20 uppercase italic">${c[3] || 'Modalidad'}</span>
-                                    <span class="text-[10px] font-bold text-slate-500">${c[1] || 'Mes'}</span>
+                                <div class="flex justify-between items-center mb-3">
+                                    <span class="text-[9px] font-black px-2 py-0.5 bg-slate-800 text-indigo-400 rounded uppercase tracking-widest">${c[3]}</span>
+                                    <span class="text-[10px] text-slate-500 font-bold">${c[1]}</span>
                                 </div>
-                                <h3 class="text-white font-bold text-lg leading-tight mb-2 uppercase tracking-tight">${c[2]}</h3>
-                                <div class="flex items-center gap-2 text-xs text-slate-400 mb-6">
-                                    <i class="fas fa-user-circle text-slate-600"></i>
-                                    <span>${c[6] || 'Por asignar'}</span>
-                                </div>
-
-                                <div class="bg-slate-900/40 rounded-xl p-4 mb-6 border border-slate-700/50">
-                                    <p class="text-[9px] font-black text-slate-500 uppercase mb-1">Presupuesto</p>
-                                    <p class="text-xl font-mono font-bold text-white leading-none">$${parseInt(presupuesto).toLocaleString('es-CO')}</p>
+                                <h3 class="text-white font-bold text-sm leading-snug mb-4 uppercase">${c[2]}</h3>
+                                
+                                <div class="flex items-center gap-2 text-[11px] text-slate-400 mb-4">
+                                    <i class="fas fa-user-circle"></i>
+                                    <span>${c[6]}</span>
                                 </div>
 
-                                <div class="space-y-3 mb-6">
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span class="text-slate-500 font-medium">Ficha Técnica:</span>
-                                        <span class="text-slate-300 font-bold">${c[7] || '--'}</span>
-                                    </div>
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span class="text-slate-500 font-medium">Estudios Previos:</span>
-                                        <span class="bg-slate-800 px-2 py-0.5 rounded text-[10px] text-slate-400">${c[11] || 'N/A'}</span>
-                                    </div>
+                                <div class="bg-black/20 p-3 rounded-lg border border-slate-800 mb-4">
+                                    <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Presupuesto Estimado</p>
+                                    <p class="text-base font-mono font-bold text-emerald-400">$${valor.toLocaleString('es-CO')}</p>
                                 </div>
                             </div>
 
-                            <div class="pt-4 border-t border-slate-700/50 flex justify-between items-end">
+                            <div class="pt-3 border-t border-slate-800 flex justify-between items-end">
                                 <div>
-                                    <p class="text-[9px] font-black text-slate-600 uppercase">Estado General</p>
-                                    <p class="text-xs font-black ${colorTextoEstado} uppercase tracking-tighter">${estado || 'Pendiente'}</p>
+                                    <p class="text-[9px] text-slate-600 font-bold uppercase italic">Estado Actual</p>
+                                    <p class="text-[11px] font-black ${estado === 'Atrasado' ? 'text-rose-500' : 'text-indigo-400'} uppercase">${estado}</p>
                                 </div>
-                                <div class="flex gap-2">
-                                    <i class="fas fa-file-alt text-slate-700 hover:text-indigo-400 cursor-help transition-colors"></i>
+                                <div class="text-right">
+                                    <p class="text-[9px] text-slate-600 font-bold uppercase">Entrega Ficha</p>
+                                    <p class="text-[11px] font-bold text-slate-300">${c[7]}</p>
                                 </div>
                             </div>
                         </div>
                     `;
                 });
-            } catch (err) {
-                console.error("Error visualizando datos:", err);
-            }
+            } catch (e) { console.error(e); }
         }
 
         function configurar() { document.getElementById('configPanel').classList.toggle('hidden'); }
         function guardarConfig() {
-            const url = document.getElementById('csvUrl').value;
-            if(url.includes('pub?output=csv') || url.includes('pub?&output=csv')) {
-                localStorage.setItem('dafp_csv_url', url);
-                location.reload();
-            } else {
-                alert("La URL no parece ser un CSV válido. Revisa el paso 2 de las instrucciones.");
-            }
+            localStorage.setItem('dafp_otic_url', document.getElementById('csvUrl').value);
+            location.reload();
         }
         window.onload = render;
     </script>
