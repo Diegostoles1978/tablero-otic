@@ -9,114 +9,131 @@
 </head>
 <body class="bg-slate-900 text-white font-sans p-6">
 
-    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl gap-4">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 bg-slate-800 p-8 rounded-2xl border-l-8 border-indigo-600 shadow-2xl gap-4">
         <div>
-            <h1 class="text-3xl font-extrabold tracking-tight">Seguimiento Contractual OTIC</h1>
-            <p class="text-indigo-400 font-medium"><i class="fas fa-landmark"></i> Departamento Administrativo de la Función Pública</p>
+            <h1 class="text-3xl font-black tracking-tighter">DAFP — SEGUIMIENTO OTIC 2026</h1>
+            <p class="text-slate-400 flex items-center gap-2"><i class="fas fa-microchip text-indigo-400"></i> Gestión de Procesos Contractuales</p>
         </div>
-        <div class="flex gap-4">
-            <button onclick="configurar()" class="bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-xl font-bold transition flex items-center gap-2">
-                <i class="fas fa-database"></i> Datos
+        <div class="flex gap-3">
+            <button onclick="configurar()" class="bg-indigo-600 hover:bg-indigo-500 px-6 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 shadow-lg">
+                <i class="fas fa-database"></i> Conectar Excel
             </button>
-            <button onclick="location.reload()" class="bg-slate-700 hover:bg-slate-600 px-5 py-2.5 rounded-xl font-bold transition flex items-center gap-2">
+            <button onclick="location.reload()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2.5 rounded-xl transition-all">
                 <i class="fas fa-sync-alt"></i>
             </button>
         </div>
     </div>
 
-    <div id="configPanel" class="hidden max-w-7xl mx-auto mb-8 bg-indigo-900/30 p-6 rounded-2xl border border-indigo-500/50 backdrop-blur-sm">
-        <label class="block text-sm font-bold mb-2 text-indigo-200">URL del Google Sheets (Publicado como CSV):</label>
-        <div class="flex gap-3">
-            <input type="text" id="csvUrl" placeholder="Pega el enlace de publicación aquí..." class="flex-1 p-3 rounded-xl bg-slate-800 border border-slate-600 focus:outline-none focus:border-indigo-400 text-sm">
-            <button onclick="guardarConfig()" class="bg-green-600 hover:bg-green-500 px-8 py-3 rounded-xl font-bold shadow-lg transition">Conectar</button>
+    <div id="configPanel" class="hidden max-w-7xl mx-auto mb-8 bg-slate-800 p-6 rounded-2xl border border-slate-700">
+        <h2 class="text-sm font-bold uppercase text-indigo-400 mb-4">Configuración de Fuente de Datos</h2>
+        <div class="flex flex-col md:flex-row gap-4">
+            <input type="text" id="csvUrl" placeholder="Pega aquí la URL de Google Sheets (terminada en &output=csv)" class="flex-1 p-3 rounded-xl bg-slate-900 border border-slate-700 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            <button onclick="guardarConfig()" class="bg-green-600 hover:bg-green-500 px-10 py-3 rounded-xl font-black transition-all">CONECTAR</button>
+        </div>
+        <p class="text-[10px] mt-4 text-slate-500 italic">Nota: Asegúrate de que la hoja en Google Sheets se llame 'BASE' y esté publicada como CSV.</p>
+    </div>
+
+    <div id="tablero" class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="col-span-full text-center py-20">
+            <i class="fas fa-spinner animate-spin text-4xl text-indigo-500 mb-4"></i>
+            <p class="text-slate-500 font-medium">Sincronizando con la base de datos de la OTIC...</p>
         </div>
     </div>
 
-    <div id="gridContratos" class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div class="col-span-full text-center py-20 text-slate-500 animate-pulse">Cargando base de datos estratégica...</div>
-    </div>
-
     <script>
-        async function cargarTablero() {
-            const url = localStorage.getItem('otic_sheet_url');
+        async function renderTablero() {
+            const url = localStorage.getItem('dafp_otic_csv');
             if (!url) {
-                document.getElementById('gridContratos').innerHTML = '<div class="col-span-full text-center py-20 text-indigo-400 bg-slate-800 rounded-2xl border-2 border-dashed border-slate-700">Haz clic en el botón "Datos" para conectar tu Google Sheets.</div>';
+                document.getElementById('tablero').innerHTML = `
+                    <div class="col-span-full bg-slate-800/50 border-2 border-dashed border-slate-700 rounded-3xl p-20 text-center">
+                        <p class="text-slate-400 mb-4 font-medium">No hay una fuente de datos conectada.</p>
+                        <button onclick="configurar()" class="text-indigo-400 font-bold hover:underline">Configurar enlace de Google Sheets</button>
+                    </div>
+                `;
                 return;
             }
 
             try {
-                const res = await fetch(url);
-                const csv = await res.text();
-                const filas = csv.split('\n').slice(1);
-                const container = document.getElementById('gridContratos');
+                const response = await fetch(url);
+                const data = await response.text();
+                // Limpieza de filas (omitimos las 2 primeras filas de encabezados del Excel)
+                const filas = data.split('\n').slice(2); 
+                const container = document.getElementById('tablero');
                 container.innerHTML = '';
 
-                filas.forEach(f => {
-                    const c = f.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); // Soporta comas dentro de textos
-                    if (c.length < 10) return;
+                filas.forEach(fila => {
+                    const c = fila.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    if (c.length < 10 || !c[2]) return;
 
-                    // MAPEÓ SEGÚN TU NUEVO EXCEL:
-                    // 0:ID, 1:TIPO, 2:MODALIDAD, 3:MES, 4:RESPONSABLE, 5:OBJETO, 6:PRESUPUESTO, 
-                    // 7:ADICIONES, 8:TOTAL, 9:PLAZO, 10:ID_SECOP, 11:ETAPA, 12:AVANCE, 
-                    // 13:AL_ROJAS, 14:AL_AMARILLAS, 15:LINK_SECOP, 16:LINK_DOCS
+                    // MAPEÓ BASADO EN TU EXCEL "BASE.CSV":
+                    // c[1]: Mes, c[2]: Nombre, c[3]: Modalidad, c[4]: Presupuesto,
+                    // c[6]: Responsable, c[7]: Fecha Límite Ficha, c[8]: Estado General,
+                    // c[10]: Análisis Sector, c[11]: Estudios Previos, c[12]: Matriz Riesgo
 
-                    const presupuesto = parseFloat(c[8].replace(/[^0-9.-]+/g,"")) || 0;
-                    const avance = parseInt(c[12]) || 0;
-                    const colorBorde = avance === 100 ? 'border-green-500' : 'border-slate-700';
+                    const presupuesto = parseFloat(c[4]) || 0;
+                    const estadoGral = c[8]?.trim();
+                    const colorEstado = estadoGral === 'Atrasado' ? 'border-rose-500' : 
+                                      estadoGral === 'En curso' ? 'border-indigo-500' : 'border-emerald-500';
 
                     const card = `
-                        <div class="bg-slate-800 border-t-4 ${colorBorde} rounded-2xl p-6 shadow-xl hover:scale-[1.02] transition-transform duration-300">
-                            <div class="flex justify-between items-start mb-3">
-                                <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-1 bg-slate-700 rounded text-indigo-300">${c[2]}</span>
-                                <div class="flex gap-1">
-                                    <span class="text-xs bg-rose-500/20 text-rose-400 px-2 py-1 rounded font-bold"><i class="fas fa-bell"></i> ${c[13]}</span>
-                                    <span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded font-bold"><i class="fas fa-exclamation-triangle"></i> ${c[14]}</span>
+                        <div class="bg-slate-800 rounded-3xl border-b-8 ${colorEstado} p-6 shadow-2xl flex flex-col justify-between">
+                            <div>
+                                <div class="flex justify-between items-start mb-4">
+                                    <span class="bg-slate-900 text-indigo-400 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter border border-indigo-500/30">
+                                        ${c[3]}
+                                    </span>
+                                    <span class="text-[10px] font-bold text-slate-500 italic">${c[1]}</span>
+                                </div>
+
+                                <h3 class="text-xl font-bold leading-tight mb-2 text-slate-100">${c[2]}</h3>
+                                <p class="text-xs text-slate-400 mb-4 flex items-center gap-2">
+                                    <i class="fas fa-user-tie text-indigo-400"></i> ${c[6] || 'Sin asignar'}
+                                </p>
+
+                                <div class="bg-slate-900/80 rounded-2xl p-4 mb-4 border border-slate-700/50">
+                                    <p class="text-[10px] uppercase font-black text-slate-500 mb-1">Presupuesto Estimado</p>
+                                    <p class="text-lg font-mono font-bold text-emerald-400">$${presupuesto.toLocaleString('es-CO')}</p>
+                                </div>
+
+                                <div class="space-y-2 mb-6">
+                                    <div class="flex justify-between text-[11px]">
+                                        <span class="text-slate-500">Estudios Previos:</span>
+                                        <span class="font-bold ${c[11] === 'En curso' ? 'text-amber-400' : 'text-slate-300'}">${c[11]}</span>
+                                    </div>
+                                    <div class="flex justify-between text-[11px]">
+                                        <span class="text-slate-500">Matriz de Riesgo:</span>
+                                        <span class="font-bold ${c[12] === 'En curso' ? 'text-amber-400' : 'text-slate-300'}">${c[12]}</span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <h3 class="font-bold text-lg mb-1 truncate" title="${c[0]}">${c[0]}</h3>
-                            <p class="text-xs text-slate-400 mb-4 h-8 line-clamp-2">${c[5]}</p>
-
-                            <div class="grid grid-cols-2 gap-4 mb-6 bg-slate-900/50 p-3 rounded-xl border border-slate-700">
+                            <div class="pt-4 border-t border-slate-700 flex justify-between items-center">
                                 <div>
-                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Presupuesto Total</p>
-                                    <p class="text-sm font-mono text-emerald-400 font-bold">$${presupuesto.toLocaleString()}</p>
+                                    <p class="text-[9px] uppercase font-black text-slate-500">Límite Ficha</p>
+                                    <p class="text-xs font-bold text-rose-400">${c[7] || '--'}</p>
                                 </div>
-                                <div>
-                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Vence</p>
-                                    <p class="text-sm font-bold text-slate-300">${c[9]}</p>
+                                <div class="text-right">
+                                    <p class="text-[9px] uppercase font-black text-slate-500">Estado</p>
+                                    <p class="text-xs font-black ${estadoGral === 'Atrasado' ? 'text-rose-500' : 'text-emerald-400'} uppercase underline underline-offset-4">
+                                        ${estadoGral}
+                                    </p>
                                 </div>
-                            </div>
-
-                            <div class="mb-6">
-                                <div class="flex justify-between text-[10px] font-bold mb-1 uppercase tracking-tight">
-                                    <span class="text-indigo-400">${c[11]}</span>
-                                    <span class="text-orange-400">${avance}%</span>
-                                </div>
-                                <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
-                                    <div class="bg-gradient-to-r from-orange-600 to-orange-400 h-full transition-all duration-1000" style="width: ${avance}%"></div>
-                                </div>
-                            </div>
-
-                            <div class="flex gap-2">
-                                <a href="${c[15]}" target="_blank" class="flex-1 text-center py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-[10px] font-black transition uppercase">SECOP</a>
-                                <a href="${c[16]}" target="_blank" class="flex-1 text-center py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-[10px] font-black transition uppercase">Expediente</a>
                             </div>
                         </div>
                     `;
                     container.innerHTML += card;
                 });
-            } catch (e) {
-                alert("Error al leer los datos. Verifica la publicación del CSV.");
+            } catch (error) {
+                console.error("Error cargando el tablero:", error);
             }
         }
 
         function configurar() { document.getElementById('configPanel').classList.toggle('hidden'); }
         function guardarConfig() {
-            localStorage.setItem('otic_sheet_url', document.getElementById('csvUrl').value);
+            localStorage.setItem('dafp_otic_csv', document.getElementById('csvUrl').value);
             location.reload();
         }
-        window.onload = cargarTablero;
+        window.onload = renderTablero;
     </script>
 </body>
 </html>
