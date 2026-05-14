@@ -3,139 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablero OTIC — Dinámico</title>
+    <title>Tablero OTIC — Versión Final 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .critica { color: #f87171 !important; font-weight: 800; border-bottom: 2px solid #ef4444; }
-        .advertencia { color: #fbbf24 !important; font-weight: 800; border-bottom: 2px solid #f59e0b; }
-        .en-curso { color: #34d399 !important; font-weight: 800; }
-        .pendiente { color: #94a3b8 !important; }
-        .card-otic { background: linear-gradient(145deg, #0f172a, #1e293b); border: 1px solid #334155; }
+        .critica { border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.1); }
+        .advertencia { border-left: 4px solid #f59e0b; background: rgba(245, 158, 11, 0.1); }
+        .en-curso { border-left: 4px solid #10b981; background: rgba(16, 185, 129, 0.1); }
+        .completado { border-left: 4px solid #6366f1; background: rgba(99, 102, 241, 0.1); }
     </style>
 </head>
-<body class="bg-[#020617] text-slate-300 p-4 md:p-8 font-sans">
+<body class="bg-[#020617] text-slate-300 font-sans p-4 md:p-8">
 
-    <header class="max-w-[1200px] mx-auto mb-8 bg-slate-900/80 p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
-        <div class="flex flex-col lg:flex-row justify-between items-center gap-6">
-            <h1 class="text-3xl font-black text-white uppercase italic tracking-tighter">Control Contractual OTIC</h1>
-            <div class="flex items-center gap-4">
-                <div class="bg-black/40 px-6 py-3 rounded-2xl border border-slate-800 text-center">
-                    <p class="text-[10px] font-black text-slate-500 uppercase mb-1">Presupuesto en Gestión</p>
-                    <p id="totalPresupuesto" class="text-2xl font-black text-emerald-400">$0</p>
+    <div class="max-w-[1400px] mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 bg-slate-900/50 p-6 rounded-3xl border border-slate-800 backdrop-blur-md">
+            <div>
+                <h1 class="text-2xl font-black text-white uppercase italic tracking-tighter">Tablero de Control OTIC 2026</h1>
+                <p class="text-indigo-400 text-[10px] font-bold uppercase tracking-widest mt-1">Fuente: Google Sheets — Sincronización Directa</p>
+            </div>
+            <div class="flex items-center gap-4 mt-4 md:mt-0">
+                <div class="text-right">
+                    <p class="text-[9px] text-slate-500 font-bold uppercase">Total en Gestión</p>
+                    <p id="totalGlobal" class="text-2xl font-black text-emerald-400">$0</p>
                 </div>
-                <button onclick="configurar()" class="bg-indigo-600 hover:bg-indigo-500 text-white w-14 h-14 rounded-2xl transition-all flex items-center justify-center shadow-lg">
-                    <i class="fas fa-cog"></i>
+                <button onclick="document.getElementById('config').classList.toggle('hidden')" class="bg-slate-800 p-3 rounded-xl hover:bg-slate-700 transition-all text-white">
+                    <i class="fas fa-database"></i>
                 </button>
             </div>
-        </div>
-    </header>
+        </header>
 
-    <div id="configPanel" class="hidden max-w-[1200px] mx-auto mb-8 bg-slate-800 p-6 rounded-2xl border border-indigo-500">
-        <input type="text" id="csvUrl" placeholder="URL del CSV de Google Sheets" class="w-full p-4 bg-slate-950 rounded-xl text-white outline-none mb-4 border border-slate-700">
-        <button onclick="guardarConfig()" class="w-full bg-emerald-600 py-4 rounded-xl font-black uppercase text-white hover:bg-emerald-500 transition-all italic">Vincular Datos</button>
+        <div id="config" class="hidden mb-8 bg-slate-800/50 p-6 rounded-2xl border border-indigo-500/50">
+            <p class="text-xs font-bold text-indigo-300 mb-2 uppercase">Configuración de Origen (CSV)</p>
+            <input type="text" id="urlInput" placeholder="Pega aquí la URL de publicación (CSV)" class="w-full p-4 bg-black/50 rounded-xl text-white outline-none border border-slate-700 mb-4">
+            <button onclick="saveUrl()" class="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-black text-white uppercase tracking-widest transition-all">Vincular y Actualizar</button>
+        </div>
+
+        <div id="tablero" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            </div>
     </div>
 
-    <main id="tablero" class="max-w-[1200px] mx-auto space-y-10 pb-24"></main>
-
     <script>
-        function getStatusInfo(fechaLim, estadoTexto) {
-            if (!fechaLim || fechaLim === "" || fechaLim.toLowerCase().includes("fecha")) return { color: "pendiente" };
-            const hoy = new Date();
-            const limite = new Date(fechaLim);
-            const diffDays = Math.ceil((limite - hoy) / (1000 * 60 * 60 * 24));
-            if (diffDays < 0 || (estadoTexto && estadoTexto.toLowerCase().includes("atrasado"))) return { color: "critica" };
-            if (diffDays <= 3) return { color: "advertencia" };
-            return { color: "en-curso" };
+        function getColor(estado) {
+            const e = (estado || "").toLowerCase();
+            if (e.includes("atrasado")) return "text-red-500 font-bold";
+            if (e.includes("en curso")) return "text-amber-400 font-bold";
+            if (e.includes("completado")) return "text-emerald-400 font-bold";
+            return "text-slate-500";
         }
 
-        async function render() {
-            const url = localStorage.getItem('otic_v14_final');
-            if (!url) { document.getElementById('configPanel').classList.remove('hidden'); return; }
+        async function init() {
+            const url = localStorage.getItem('otic_csv_2026');
+            if (!url) { document.getElementById('config').classList.remove('hidden'); return; }
 
             try {
-                const res = await fetch(url);
-                const csvRaw = await res.text();
-                const sep = csvRaw.includes(';') ? ';' : ',';
-                const filas = csvRaw.split(/\r?\n/).map(f => f.split(sep).map(c => c.trim().replace(/"/g, '')));
+                const response = await fetch(url);
+                const data = await response.text();
+                const lines = data.split(/\r?\n/).map(line => line.split(',').map(c => c.trim().replace(/"/g, '')));
                 
-                let totalB = 0;
                 const container = document.getElementById('tablero');
                 container.innerHTML = '';
+                let totalSuma = 0;
 
-                for (let i = 0; i < filas.length; i++) {
-                    const rStr = filas[i].join(" ").toUpperCase();
+                // Empezamos en i=2 porque i=0 es el título y i=1 son los encabezados
+                for (let i = 2; i < lines.length; i++) {
+                    const row = lines[i];
+                    if (!row[2]) continue; // Si no hay nombre de proceso, saltamos
+
+                    const nombre = row[2];
+                    const modalidad = row[3];
+                    const presupuesto = parseInt(row[4]) || 0;
+                    const responsable = row[6];
+                    const estGeneral = row[8];
                     
-                    // Detectar inicio de bloque
-                    if (rStr.includes("DAFP")) {
-                        let bloque = { nombre: "", resp: "No asignado", mod: "No def.", pres: 0, estados: [], fechas: [] };
-                        
-                        // 1. Extraer Nombre y Responsable de la fila actual
-                        bloque.nombre = filas[i].find(c => c.toUpperCase().includes("DAFP")) || "Proceso";
-                        let respCell = filas[i].find(c => c.toLowerCase().includes("responsable"));
-                        if (respCell) bloque.resp = respCell.split(":")[1]?.trim() || respCell;
+                    totalSuma += presupuesto;
 
-                        // 2. Escanear las siguientes 10 filas para encontrar Presupuesto y Actividades
-                        for (let j = i + 1; j < i + 12; j++) {
-                            if (!filas[j]) continue;
-                            const filaSiguienteStr = filas[j].join(" ");
-                            
-                            // Presupuesto
-                            if (filaSiguienteStr.toLowerCase().includes("presupuesto")) {
-                                const num = filaSiguienteStr.replace(/[^0-9]/g, '');
-                                bloque.pres = parseInt(num) || 0;
-                            }
-                            // Modalidad (fila justo después del nombre usualmente)
-                            if (j === i + 1) bloque.mod = filas[j].find(c => c.length > 2) || "---";
+                    // Lógica de Alerta de la Tarjeta
+                    let cardClass = "en-curso";
+                    if (estGeneral.toLowerCase().includes("atrasado")) cardClass = "critica";
+                    if (estGeneral.toLowerCase().includes("completado")) cardClass = "completado";
 
-                            // Tabla de Actividades
-                            if (filaSiguienteStr.toLowerCase().includes("actividad")) {
-                                bloque.estados = filas[j+1] || [];
-                                bloque.fechas = filas[j+2] || [];
-                            }
-                        }
-
-                        totalB += bloque.pres;
-
-                        container.innerHTML += `
-                            <div class="card-otic rounded-[2.5rem] p-8 shadow-2xl">
-                                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 border-b border-slate-700/50 pb-6 uppercase italic">
-                                    <div><p class="text-[9px] font-black text-slate-500 mb-1">Proyecto</p><p class="text-white font-bold text-xs">${bloque.nombre}</p></div>
-                                    <div><p class="text-[9px] font-black text-slate-500 mb-1">Modalidad</p><p class="text-indigo-400 font-bold text-xs">${bloque.mod}</p></div>
-                                    <div><p class="text-[9px] font-black text-slate-500 mb-1">Presupuesto</p><p class="text-emerald-400 font-mono font-bold text-lg">$${bloque.pres.toLocaleString('es-CO')}</p></div>
-                                    <div><p class="text-[9px] font-black text-slate-500 mb-1">Responsable</p><p class="text-slate-300 font-bold text-xs underline decoration-indigo-500/30">${bloque.resp}</p></div>
+                    container.innerHTML += `
+                        <div class="bg-slate-900/40 rounded-[2rem] p-6 border border-slate-800 shadow-xl ${cardClass} transition-transform hover:scale-[1.02]">
+                            <div class="mb-4">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="text-[9px] bg-slate-800 text-slate-400 px-2 py-1 rounded-md font-bold uppercase tracking-widest">${modalidad}</span>
+                                    <span class="text-[10px] ${getColor(estGeneral)} uppercase font-black tracking-tighter">${estGeneral}</span>
                                 </div>
-                                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-                                    ${etapa("Ficha Técnica", bloque.estados[1], bloque.fechas[1])}
-                                    ${etapa("Publicación", bloque.estados[2], bloque.fechas[2])}
-                                    ${etapa("Análisis Sector", bloque.estados[3], bloque.fechas[3])}
-                                    ${etapa("Estudios Previos", bloque.estados[4], bloque.fechas[4])}
-                                    ${etapa("Matriz Riesgos", bloque.estados[5], bloque.fechas[5])}
+                                <h3 class="text-white font-bold text-sm leading-tight h-10 overflow-hidden">${nombre}</h3>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 mb-6">
+                                <div>
+                                    <p class="text-[9px] text-slate-500 font-bold uppercase">Presupuesto</p>
+                                    <p class="text-emerald-400 font-mono font-bold">$${presupuesto.toLocaleString('es-CO')}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[9px] text-slate-500 font-bold uppercase">Responsable</p>
+                                    <p class="text-slate-300 text-[11px] font-medium">${responsable}</p>
                                 </div>
                             </div>
-                        `;
-                        i += 15; // Saltar al siguiente bloque
-                    }
+
+                            <div class="space-y-2 border-t border-slate-800 pt-4">
+                                ${linea("Ficha Técnica", row[5], row[7])}
+                                ${linea("Análisis Sector", row[10], "---")}
+                                ${linea("Estudios Previos", row[11], "---")}
+                                ${linea("Matriz Riesgos", row[12], "---")}
+                                ${linea("SECOP II", row[14], row[16])}
+                            </div>
+                        </div>
+                    `;
                 }
-                document.getElementById('totalPresupuesto').innerText = '$' + totalB.toLocaleString('es-CO');
-            } catch (e) { console.error("Error:", e); }
+                document.getElementById('totalGlobal').innerText = '$' + totalSuma.toLocaleString('es-CO');
+
+            } catch (err) {
+                console.error(err);
+                alert("Error al procesar el CSV. Revisa que el enlace sea el correcto.");
+            }
         }
 
-        function etapa(tit, est, fec) {
-            const info = getStatusInfo(fec, est);
-            return `<div class="bg-black/30 p-4 rounded-2xl border border-slate-800/50 text-center">
-                <p class="text-[9px] font-black uppercase mb-1 ${info.color}">${tit}</p>
-                <p class="text-[10px] font-bold text-white leading-tight mb-1">${est || '---'}</p>
-                <p class="text-[9px] font-mono text-slate-500 italic">${fec || '--'}</p>
-            </div>`;
+        function linea(titulo, estado, fecha) {
+            return `
+                <div class="flex justify-between items-center text-[10px]">
+                    <span class="text-slate-500 font-medium">${titulo}</span>
+                    <div class="text-right">
+                        <span class="${getColor(estado)} mr-2">${estado || '---'}</span>
+                        <span class="text-slate-600 font-mono">${fecha && fecha !== '---' ? fecha : ''}</span>
+                    </div>
+                </div>
+            `;
         }
 
-        function configurar() { document.getElementById('configPanel').classList.toggle('hidden'); }
-        function guardarConfig() {
-            localStorage.setItem('otic_v14_final', document.getElementById('csvUrl').value.trim());
-            location.reload();
+        function saveUrl() {
+            const val = document.getElementById('urlInput').value.trim();
+            if (val) {
+                localStorage.setItem('otic_csv_2026', val);
+                location.reload();
+            }
         }
-        window.onload = render;
+
+        window.onload = init;
     </script>
 </body>
 </html>
