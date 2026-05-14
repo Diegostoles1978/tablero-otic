@@ -11,57 +11,58 @@
         .advertencia { color: #ffb300 !important; font-weight: 800; }
         .en-curso { color: #4ade80 !important; font-weight: 800; }
         .pendiente { color: #64748b !important; font-weight: 800; }
+        .card-bg { background: linear-gradient(145deg, #111827, #1e293b); }
     </style>
 </head>
 <body class="bg-[#020617] text-slate-300 font-sans p-4 md:p-8">
 
-    <div class="max-w-[1400px] mx-auto mb-6 bg-slate-900/50 border border-slate-800 p-8 rounded-[2rem] shadow-2xl">
+    <header class="max-w-[1400px] mx-auto mb-6 bg-slate-900/80 border border-slate-800 p-8 rounded-[2rem] shadow-2xl">
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
             <div>
                 <h1 class="text-3xl font-black text-white tracking-tighter uppercase leading-none italic">Tablero de Seguimiento Contractual</h1>
                 <p id="fechaActual" class="text-indigo-400 font-bold mt-2"></p>
             </div>
             <div class="flex flex-wrap gap-3">
-                <div class="bg-black/40 px-6 py-4 rounded-2xl border border-slate-800">
-                    <p class="text-[10px] uppercase font-black text-slate-500 mb-1 tracking-widest">Procesos</p>
+                <div class="bg-black/40 px-6 py-4 rounded-2xl border border-slate-800 text-center min-w-[120px]">
+                    <p class="text-[10px] uppercase font-black text-slate-500 mb-1">Procesos</p>
                     <p id="totalProcesos" class="text-2xl font-black text-white">0</p>
                 </div>
-                <div class="bg-black/40 px-6 py-4 rounded-2xl border border-slate-800">
-                    <p class="text-[10px] uppercase font-black text-slate-500 mb-1 tracking-widest">Presupuesto Total</p>
+                <div class="bg-black/40 px-6 py-4 rounded-2xl border border-slate-800 text-center min-w-[180px]">
+                    <p class="text-[10px] uppercase font-black text-slate-500 mb-1">Presupuesto Total</p>
                     <p id="totalPresupuesto" class="text-2xl font-black text-emerald-400">$0</p>
                 </div>
                 <button onclick="configurar()" class="bg-indigo-600 hover:bg-indigo-500 text-white w-14 h-14 rounded-2xl transition-all flex items-center justify-center shadow-lg">
-                    <i class="fas fa-cog text-xl"></i>
+                    <i class="fas fa-sync-alt text-xl"></i>
                 </button>
             </div>
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
             <div class="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl">
-                <p class="text-[10px] font-black text-rose-500 uppercase">Alertas Críticas</p>
+                <p class="text-[10px] font-black text-rose-500 uppercase italic">Alertas Críticas</p>
                 <p id="countCriticas" class="text-2xl font-black text-rose-500">0</p>
             </div>
             <div class="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl">
-                <p class="text-[10px] font-black text-amber-500 uppercase">Advertencias</p>
+                <p class="text-[10px] font-black text-amber-500 uppercase italic">Advertencias</p>
                 <p id="countAdvertencias" class="text-2xl font-black text-amber-500">0</p>
             </div>
             <div class="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl">
-                <p class="text-[10px] font-black text-emerald-400 uppercase">En Curso</p>
+                <p class="text-[10px] font-black text-emerald-400 uppercase italic">En Curso</p>
                 <p id="countEnCurso" class="text-2xl font-black text-emerald-400">0</p>
             </div>
             <div class="bg-slate-800/30 border border-slate-700/30 p-4 rounded-2xl">
-                <p class="text-[10px] font-black text-slate-500 uppercase">Pendientes</p>
+                <p class="text-[10px] font-black text-slate-500 uppercase italic">Pendientes</p>
                 <p id="countPendientes" class="text-2xl font-black text-slate-500">0</p>
             </div>
         </div>
-    </div>
+    </header>
 
     <div id="configPanel" class="hidden max-w-[1400px] mx-auto mb-6 bg-slate-800 p-6 rounded-2xl border border-indigo-500">
-        <input type="text" id="csvUrl" placeholder="Pega el enlace CSV de Google Sheets" class="w-full p-4 bg-slate-950 rounded-xl text-white border border-slate-700 outline-none mb-4">
-        <button onclick="guardarConfig()" class="w-full bg-emerald-600 py-4 rounded-xl font-black uppercase text-white hover:bg-emerald-500 transition-all">Actualizar Tablero</button>
+        <input type="text" id="csvUrl" placeholder="Pega la URL de Google Sheets (CSV)" class="w-full p-4 bg-slate-950 rounded-xl text-white border border-slate-700 outline-none mb-4">
+        <button onclick="guardarConfig()" class="w-full bg-emerald-600 py-4 rounded-xl font-black uppercase text-white hover:bg-emerald-500 transition-all">Conectar Datos</button>
     </div>
 
-    <main id="tablero" class="max-w-[1400px] mx-auto space-y-8">
+    <main id="tablero" class="max-w-[1400px] mx-auto space-y-8 pb-20">
         </main>
 
     <script>
@@ -78,67 +79,68 @@
         }
 
         async function render() {
-            const url = localStorage.getItem('otic_tablero_v4');
+            const url = localStorage.getItem('otic_tablero_v5');
             if (!url) return;
 
             try {
                 const res = await fetch(url);
-                const text = await res.text();
-                const filas = text.split(/\r?\n/);
+                const csvData = await res.text();
+                const filas = csvData.split(/\r?\n/);
                 
+                // Identificación dinámica de columnas
+                const headers = filas[1].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/"/g, '').trim().toLowerCase());
+                
+                const idx = (name) => headers.findIndex(h => h.includes(name.toLowerCase()));
+
                 let stats = { totalP: 0, totalB: 0, criticas: 0, adv: 0, curso: 0, pend: 0 };
                 const container = document.getElementById('tablero');
                 container.innerHTML = '';
 
-                filas.forEach((fila, index) => {
-                    if (index < 2) return; 
+                filas.slice(2).forEach(fila => {
                     const c = fila.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/"/g, '').trim());
-                    
-                    // Verificación de nombre de proceso (Columna C / Índice 2)
-                    if (!c[2] || c[2] === "") return;
+                    if (!c[idx("nombre")] || c[idx("nombre")] === "") return;
 
                     stats.totalP++;
-                    // AJUSTE 1: Presupuesto limpio (Columna E / Índice 4)
-                    const presupuesto = parseInt(c[4]?.replace(/[^0-9]/g, '')) || 0;
+                    const presupuesto = parseInt(c[idx("presupuesto")]?.replace(/[^0-9]/g, '')) || 0;
                     stats.totalB += presupuesto;
 
-                    const sFicha = getStatusInfo(c[7], c[5]);
-                    const sAnalis = getStatusInfo(c[13], c[10]);
-                    const sEstud = getStatusInfo(c[13], c[11]);
-                    const sRiesg = getStatusInfo(c[13], c[12]);
+                    const sFicha = getStatusInfo(c[idx("entrega ficha")], c[idx("elaboracion ficha")]);
+                    const sAnalisis = getStatusInfo(c[idx("límite: actividades")], c[idx("analisis del sector")]);
+                    const sPrevios = getStatusInfo(c[idx("límite: actividades")], c[idx("estudios previos")]);
+                    const sRiesgos = getStatusInfo(c[idx("límite: actividades")], c[idx("matriz de riesgo")]);
 
-                    if (sFicha.crit || sAnalis.crit) stats.criticas++;
-                    else if (sFicha.adv || sAnalis.adv) stats.adv++;
+                    if (sFicha.crit || sAnalisis.crit) stats.criticas++;
+                    else if (sFicha.adv || sAnalisis.adv) stats.adv++;
                     else stats.curso++;
 
                     container.innerHTML += `
-                        <div class="bg-slate-900/80 border border-slate-800 rounded-[2.5rem] p-8 shadow-2xl">
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 border-b border-slate-800 pb-8 uppercase text-[11px]">
-                                <div><p class="text-[9px] font-black text-slate-500 mb-2 italic tracking-widest">Nombre del Proceso</p><p class="text-white font-bold">${c[2]}</p></div>
-                                <div><p class="text-[9px] font-black text-slate-500 mb-2 italic tracking-widest">Modalidad</p><p class="text-indigo-400 font-bold">${c[3]}</p></div>
+                        <div class="card-bg border border-slate-800 rounded-[2.5rem] p-8 shadow-2xl">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 border-b border-slate-700/50 pb-8 uppercase text-[11px]">
+                                <div><p class="text-[9px] font-black text-slate-500 mb-2 italic tracking-widest">Nombre del Proceso</p><p class="text-white font-bold leading-tight text-sm">${c[idx("nombre")]}</p></div>
+                                <div><p class="text-[9px] font-black text-slate-500 mb-2 italic tracking-widest">Modalidad</p><p class="text-indigo-400 font-bold">${c[idx("modalidad")]}</p></div>
                                 <div><p class="text-[9px] font-black text-slate-500 mb-2 italic tracking-widest">Presupuesto</p><p class="text-emerald-400 font-mono font-bold text-lg">$${presupuesto.toLocaleString('es-CO')}</p></div>
-                                <div><p class="text-[9px] font-black text-slate-500 mb-2 italic tracking-widest">Responsable Ficha Técnica</p><p class="text-slate-300 font-bold">${c[6]}</p></div>
+                                <div><p class="text-[9px] font-black text-slate-500 mb-2 italic tracking-widest">Responsable Ficha Técnica</p><p class="text-slate-300 font-bold underline decoration-indigo-500/30">${c[idx("responsable")] || 'No asignado'}</p></div>
                             </div>
 
                             <div class="grid grid-cols-2 lg:grid-cols-7 gap-3">
-                                ${etapa("Ficha Técnica", c[5], c[7], sFicha.color)}
-                                ${etapa("Análisis Sector", c[10], c[13], sAnalis.color)}
-                                ${etapa("Estudios Previos", c[11], c[13], sEstud.color)}
-                                ${etapa("Matriz Riesgos", c[12], c[13], sRiesg.color)}
+                                ${etapa("Ficha Técnica", c[idx("elaboracion ficha")], c[idx("entrega ficha")], sFicha.color)}
+                                ${etapa("Análisis Sector", c[idx("analisis del sector")], c[idx("límite: actividades")], sAnalisis.color)}
+                                ${etapa("Estudios Previos", c[idx("estudios previos")], c[idx("límite: actividades")], sPrevios.color)}
+                                ${etapa("Matriz Riesgos", c[idx("matriz de riesgo")], c[idx("límite: actividades")], sRiesgos.color)}
                                 
-                                <div class="bg-black/40 p-4 rounded-2xl border border-indigo-500/20 text-center col-span-1">
-                                    <p class="text-[9px] font-black uppercase mb-2 text-indigo-400">SECOP II</p>
-                                    <div class="space-y-1 text-[9px] text-slate-400">
-                                        <p><span class="text-slate-500 font-bold">RAD:</span> ${c[18] || '--'}</p>
-                                        <p><span class="text-slate-500 font-bold">SOL:</span> ${c[15] || '--'}</p>
-                                        <p><span class="text-slate-500 font-bold">INI:</span> ${c[16] || '--'}</p>
-                                        <p><span class="text-slate-500 font-bold">FIN:</span> ${c[17] || '--'}</p>
-                                        <p class="bg-indigo-900/30 text-indigo-200 p-1 rounded font-bold">PROCESO: ${c[21] || '--'}</p>
+                                <div class="bg-indigo-950/20 p-4 rounded-2xl border border-indigo-500/30 text-center">
+                                    <p class="text-[9px] font-black uppercase mb-2 text-indigo-400 tracking-tighter">SECOP II / Solicitud</p>
+                                    <div class="space-y-1 text-[9px] text-slate-400 font-medium">
+                                        <p><span class="text-slate-500">RAD:</span> ${c[idx("radicado")] || '--'}</p>
+                                        <p><span class="text-slate-500">SOL:</span> ${c[idx("solicitud info")] || '--'}</p>
+                                        <p><span class="text-slate-500">INI:</span> ${c[idx("inicio")] || '--'}</p>
+                                        <p><span class="text-slate-500">FIN:</span> ${c[idx("fin")] || '--'}</p>
+                                        <p class="bg-indigo-600/20 text-indigo-300 px-1 py-0.5 rounded mt-1 font-bold">N° ${c[idx("v3")] || c[idx("proceso")] || '--'}</p>
                                     </div>
                                 </div>
 
-                                ${etapa("Evaluación", c[17], c[18], "pendiente")}
-                                ${etapa("Adjudicación", c[19], c[20], "pendiente")}
+                                ${etapa("Evaluación", c[idx("evaluación")], c[idx("límite: evaluación")], "pendiente")}
+                                ${etapa("Adjudicación", c[idx("adjudicación")], c[idx("límite: adjudicación")], "pendiente")}
                             </div>
                         </div>
                     `;
@@ -151,7 +153,7 @@
                 document.getElementById('countEnCurso').innerText = stats.curso;
                 document.getElementById('countPendientes').innerText = stats.pend;
 
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Error en mapeo dinámico:", e); }
         }
 
         function etapa(tit, est, fec, col) {
@@ -166,7 +168,7 @@
 
         function configurar() { document.getElementById('configPanel').classList.toggle('hidden'); }
         function guardarConfig() {
-            localStorage.setItem('otic_tablero_v4', document.getElementById('csvUrl').value.trim());
+            localStorage.setItem('otic_tablero_v5', document.getElementById('csvUrl').value.trim());
             location.reload();
         }
         window.onload = render;
