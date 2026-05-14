@@ -1,108 +1,88 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablero OTIC — Versión Firewall</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .critica { color: #f87171 !important; font-weight: 800; border-bottom: 2px solid #ef4444; }
-        .advertencia { color: #fbbf24 !important; font-weight: 800; border-bottom: 2px solid #f59e0b; }
-        .en-curso { color: #34d399 !important; font-weight: 800; }
-        .pendiente { color: #94a3b8 !important; }
-        .card-otic { background: linear-gradient(145deg, #0f172a, #1e293b); border: 1px solid #334155; }
-    </style>
+<meta charset="UTF-8">
+<title>Tablero OTIC</title>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-[#020617] text-slate-300 p-4 md:p-8">
 
-    <header class="max-w-[1200px] mx-auto mb-10 bg-slate-900/80 p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
-        <div class="flex flex-col lg:row justify-between items-center gap-6">
-            <div>
-                <h1 class="text-3xl font-black text-white uppercase italic tracking-tighter">Control Contractual OTIC</h1>
-                <p class="text-indigo-400 font-bold text-[10px] uppercase tracking-[0.3em] mt-1">Proyecto Conectividad - Firewall</p>
+<body class="bg-slate-900 text-white p-8">
+
+<div class="max-w-4xl mx-auto">
+
+    <h1 class="text-3xl font-bold mb-6">📊 Seguimiento de Proyecto</h1>
+
+    <!-- TARJETA -->
+    <div class="bg-slate-800 rounded-2xl p-6 shadow-xl">
+
+        <!-- Encabezado -->
+        <h2 class="text-2xl font-bold mb-2 uppercase italic">
+            FIREWALL - PROCESO SECOP
+        </h2>
+
+        <p class="text-sm text-gray-400 mb-4">
+            👤 Responsable: David Sanchez
+        </p>
+
+        <p class="text-sm text-gray-400 mb-4">
+            📄 Modalidad: Mínima Cuantía
+        </p>
+
+        <p class="text-xl text-emerald-400 font-mono mb-6">
+            💰 $47.852.919
+        </p>
+
+        <!-- Etapas -->
+        <div class="bg-slate-900 p-4 rounded-xl">
+
+            <h3 class="text-sm text-indigo-400 font-bold mb-3 uppercase">
+                Etapas del proceso
+            </h3>
+
+            <div class="space-y-2 text-sm">
+
+                <div class="flex justify-between">
+                    <span>Ficha Técnica</span>
+                    <span class="px-2 rounded bg-yellow-500 text-black">En curso</span>
+                </div>
+
+                <div class="flex justify-between">
+                    <span>Publicación SECOP</span>
+                    <span class="px-2 rounded bg-gray-500">Pendiente</span>
+                </div>
+
+                <div class="flex justify-between">
+                    <span>Análisis del sector</span>
+                    <span class="px-2 rounded bg-yellow-500 text-black">En curso</span>
+                </div>
+
+                <div class="flex justify-between">
+                    <span>Estudios previos</span>
+                    <span class="px-2 rounded bg-yellow-500 text-black">En curso</span>
+                </div>
+
+                <div class="flex justify-between">
+                    <span>Matriz de riesgo</span>
+                    <span class="px-2 rounded bg-yellow-500 text-black">En curso</span>
+                </div>
+
+                <div class="flex justify-between">
+                    <span>Evaluación ofertas</span>
+                    <span class="px-2 rounded bg-gray-500">Sin iniciar</span>
+                </div>
+
+                <div class="flex justify-between">
+                    <span>Adjudicación</span>
+                    <span class="px-2 rounded bg-gray-500">Sin iniciar</span>
+                </div>
+
             </div>
-            <button onclick="document.getElementById('config').classList.toggle('hidden')" class="bg-indigo-600 hover:bg-indigo-500 text-white p-4 rounded-2xl transition-all">
-                <i class="fas fa-link"></i>
-            </button>
         </div>
-    </header>
 
-    <div id="config" class="hidden max-w-[1200px] mx-auto mb-8 bg-slate-800 p-6 rounded-2xl border border-indigo-500">
-        <input type="text" id="urlInput" placeholder="Pega la URL del CSV" class="w-full p-4 bg-slate-950 rounded-xl text-white outline-none mb-4 border border-slate-700">
-        <button onclick="saveUrl()" class="w-full bg-emerald-600 py-4 rounded-xl font-black text-white uppercase">Vincular Datos Originales</button>
     </div>
 
-    <main id="tablero" class="max-w-[1200px] mx-auto">
-        </main>
+</div>
 
-    <script>
-        function getStatus(fecha, estado) {
-            if (!fecha || fecha === "" || fecha.includes("Fecha")) return { color: "pendiente" };
-            const hoy = new Date();
-            const limite = new Date(fecha);
-            const dias = Math.ceil((limite - hoy) / (1000 * 60 * 60 * 24));
-            if (dias < 0 || (estado && estado.toLowerCase().includes("atrasado"))) return { color: "critica" };
-            if (dias <= 3) return { color: "advertencia" };
-            return { color: "en-curso" };
-        }
-
-        async function update() {
-            const url = localStorage.getItem('otic_firewall_only');
-            if (!url) return;
-
-            try {
-                const res = await fetch(url);
-                const csv = await res.text();
-                const sep = csv.includes(';') ? ';' : ',';
-                const filas = csv.split(/\r?\n/).map(f => f.split(sep).map(c => c.trim().replace(/"/g, '')));
-                
-                // Coordenadas fijas para el proyecto de Conectividad (Firewall)
-                // Nombre en B16, Responsable en H16, Modalidad en B17, Presupuesto en B18
-                const nombre = filas[16][1];
-                const responsable = filas[16][7] || "David Sanchez";
-                const modalidad = filas[17][1];
-                const presupuesto = filas[18][1];
-
-                // Actividades: Estados en Fila 23, Fechas en Fila 24
-                const estados = filas[23];
-                const fechas = filas[24];
-
-                document.getElementById('tablero').innerHTML = `
-                    <div class="card-otic rounded-[2.5rem] p-8 shadow-2xl border-t-4 border-indigo-500">
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 border-b border-slate-700/50 pb-8 uppercase italic text-[11px]">
-                            <div><p class="text-slate-500 mb-1">Proceso</p><p class="text-white font-bold">${nombre}</p></div>
-                            <div><p class="text-slate-500 mb-1">Modalidad</p><p class="text-indigo-400 font-bold">${modalidad}</p></div>
-                            <div><p class="text-slate-500 mb-1">Presupuesto</p><p class="text-emerald-400 font-bold text-lg">${presupuesto}</p></div>
-                            <div><p class="text-slate-500 mb-1">Resp. Técnico</p><p class="text-slate-300 font-bold underline decoration-indigo-500/30">${responsable}</p></div>
-                        </div>
-
-                        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                            ${celda("Ficha Técnica", estados[1], fechas[1])}
-                            ${celda("Publicación", estados[2], fechas[2])}
-                            ${celda("Análisis Sector", estados[3], fechas[3])}
-                            ${celda("Estudios Previos", estados[4], fechas[4])}
-                            ${celda("Matriz Riesgos", estados[5], fechas[5])}
-                        </div>
-                    </div>
-                `;
-            } catch (e) { console.error(e); }
-        }
-
-        function celda(tit, est, fec) {
-            const info = getStatus(fec, est);
-            return `<div class="bg-black/30 p-4 rounded-2xl border border-slate-800/50 text-center">
-                <p class="text-[9px] font-black uppercase mb-1 ${info.color}">${tit}</p>
-                <p class="text-[10px] font-bold text-white leading-tight mb-1">${est || '---'}</p>
-                <p class="text-[9px] font-mono text-slate-600">${fec || '--'}</p>
-            </div>`;
-        }
-
-        function saveUrl() {
-            localStorage.setItem('otic_firewall_only', document.getElementById('urlInput').value.trim());
-            location.reload();
-        }
-        window.onload = update;
-    </script>
 </body>
 </html>
+
