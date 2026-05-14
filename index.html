@@ -14,28 +14,28 @@
         .card-otic { background: linear-gradient(145deg, #0f172a, #1e293b); border: 1px solid #334155; }
     </style>
 </head>
-<body class="bg-[#020617] text-slate-300 p-4 md:p-8">
+<body class="bg-[#020617] text-slate-300 p-4 md:p-8 italic-none">
 
     <header class="max-w-[1400px] mx-auto mb-8 bg-slate-900/80 p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
         <div class="flex flex-col lg:flex-row justify-between items-center gap-6">
             <div>
                 <h1 class="text-3xl font-black text-white uppercase tracking-tighter italic">Tablero de Seguimiento Contractual</h1>
-                <p id="fechaActual" class="text-indigo-400 font-bold mt-1 uppercase text-xs tracking-widest"></p>
+                <p id="fechaActual" class="text-indigo-400 font-bold mt-1 uppercase text-[10px] tracking-widest"></p>
             </div>
             <div class="flex gap-4">
                 <div class="bg-black/40 px-6 py-4 rounded-2xl border border-slate-800 text-center">
-                    <p class="text-[10px] font-black text-slate-500 uppercase mb-1 italic">Presupuesto Ejecución</p>
+                    <p class="text-[10px] font-black text-slate-500 uppercase mb-1">Presupuesto en Seguimiento</p>
                     <p id="totalPresupuesto" class="text-2xl font-black text-emerald-400">$0</p>
                 </div>
                 <button onclick="configurar()" class="bg-indigo-600 hover:bg-indigo-500 text-white w-14 h-14 rounded-2xl transition-all flex items-center justify-center shadow-lg">
-                    <i class="fas fa-sync-alt"></i>
+                    <i class="fas fa-cog"></i>
                 </button>
             </div>
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
             <div class="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl text-center">
-                <p class="text-[10px] font-black text-rose-500 uppercase italic">Alertas Críticas</p>
+                <p class="text-[10px] font-black text-rose-500 uppercase italic">Críticas</p>
                 <p id="countCriticas" class="text-2xl font-black text-rose-500">0</p>
             </div>
             <div class="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl text-center">
@@ -48,17 +48,17 @@
             </div>
             <div class="bg-slate-800/30 border border-slate-700/30 p-4 rounded-2xl text-center">
                 <p class="text-[10px] font-black text-slate-500 uppercase italic">Pendientes</p>
-                <p id="countPendientes" class="text-2xl font-black text-slate-500">0</p>
+                <p id="countPendientes" class="text-2xl font-black">0</p>
             </div>
         </div>
     </header>
 
     <div id="configPanel" class="hidden max-w-[1400px] mx-auto mb-8 bg-slate-800 p-6 rounded-2xl border border-indigo-500">
         <input type="text" id="csvUrl" placeholder="URL del CSV de Google Sheets" class="w-full p-4 bg-slate-950 rounded-xl text-white outline-none mb-4 border border-slate-700">
-        <button onclick="guardarConfig()" class="w-full bg-emerald-600 py-4 rounded-xl font-black uppercase text-white">Actualizar</button>
+        <button onclick="guardarConfig()" class="w-full bg-emerald-600 py-4 rounded-xl font-black uppercase text-white hover:bg-emerald-500 transition-all">Actualizar Datos</button>
     </div>
 
-    <main id="tablero" class="max-w-[1400px] mx-auto space-y-12 pb-24"></main>
+    <main id="tablero" class="max-w-[1400px] mx-auto space-y-10 pb-24"></main>
 
     <script>
         document.getElementById('fechaActual').innerText = new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -68,75 +68,81 @@
             const hoy = new Date();
             const limite = new Date(fechaLim);
             const diffDays = Math.ceil((limite - hoy) / (1000 * 60 * 60 * 24));
-            if (diffDays < 0 || estadoTexto === "Atrasado") return { color: "critica", crit: 1, adv: 0 };
+            if (diffDays < 0 || (estadoTexto && estadoTexto.toLowerCase().includes("atrasado"))) return { color: "critica", crit: 1, adv: 0 };
             if (diffDays <= 2) return { color: "advertencia", crit: 0, adv: 1 };
             return { color: "en-curso", crit: 0, adv: 0 };
         }
 
         async function render() {
-            const url = localStorage.getItem('otic_v7_final');
+            const url = localStorage.getItem('otic_v8_final');
             if (!url) return;
 
             try {
                 const res = await fetch(url);
-                const csvData = await res.text();
-                const filas = csvData.split(/\r?\n/).map(f => f.split(',').map(c => c.trim().replace(/"/g, '')));
+                const csvText = await res.text();
+                const filas = csvText.split(/\r?\n/).map(f => f.split(',').map(c => c.trim().replace(/"/g, '')));
                 
                 let stats = { totalB: 0, crit: 0, adv: 0, curso: 0, pend: 0 };
                 const container = document.getElementById('tablero');
                 container.innerHTML = '';
 
-                // El archivo tiene bloques cada ~10 filas. Escaneamos para encontrar el inicio de cada proyecto.
+                // Buscador de bloques basado en la palabra "FIREWALL" o "DAFP"
                 for (let i = 0; i < filas.length; i++) {
-                    if (filas[i][1] && filas[i][1].includes("DAFP")) {
-                        const nombreProceso = filas[i][1];
-                        const modalidad = filas[i+1][1] || "No definida";
-                        const responsableRaw = filas[i][7] || "";
-                        const responsable = responsableRaw.split(":")[1]?.trim() || "No asignado";
+                    const filaActual = filas[i].join(" ");
+                    
+                    if (filaActual.toUpperCase().includes("FIREWALL") || filaActual.toUpperCase().includes("PROCESO SECOP")) {
+                        const nombreProceso = filas[i].find(c => c.includes("DAFP")) || "Proceso sin nombre";
+                        const responsableCell = filas[i].find(c => c.includes("Responsable")) || "";
+                        const responsable = responsableCell.split(":")[1]?.trim() || "No asignado";
                         
-                        // Limpieza presupuesto
-                        const pRaw = filas[i+2][1]?.replace(/[^0-9]/g, '') || "0";
+                        // Localizar Presupuesto (usualmente 2 filas abajo)
+                        const filaPresupuesto = filas[i+2].join(" ");
+                        const pRaw = filaPresupuesto.replace(/[^0-9]/g, '') || "0";
                         const presupuesto = parseInt(pRaw);
                         stats.totalB += presupuesto;
 
-                        // Mapeo por coordenadas relativas al bloque
-                        const sFicha = getStatusInfo(filas[i+8][2], filas[i+7][2]);
-                        const sAnalisis = getStatusInfo(filas[i+8][4], filas[i+7][4]);
-                        const sPrevios = getStatusInfo(filas[i+8][5], filas[i+7][5]);
-                        const sRiesgos = getStatusInfo(filas[i+8][6], filas[i+7][6]);
+                        // Localizar Modalidad (1 fila abajo)
+                        const modalidad = filas[i+1].find(c => c !== "") || "No definida";
 
-                        if (sFicha.crit || sAnalisis.crit) stats.crit++;
-                        else if (sFicha.adv || sAnalisis.adv) stats.adv++;
+                        // Localizar Actividades (Buscamos la fila que dice "Actividad")
+                        let actIdx = i;
+                        while(actIdx < i + 15 && !filas[actIdx].join("").includes("Actividad")) actIdx++;
+                        
+                        const estados = filas[actIdx + 1];
+                        const fechas = filas[actIdx + 2];
+
+                        const sFicha = getStatusInfo(fechas[1], estados[1]);
+                        const sSecop = getStatusInfo(fechas[2], estados[2]);
+                        const sAnalisis = getStatusInfo(fechas[3], estados[3]);
+                        const sPrevios = getStatusInfo(fechas[4], estados[4]);
+                        const sRiesgos = getStatusInfo(fechas[5], estados[5]);
+
+                        if (sFicha.crit || sSecop.crit || sAnalisis.crit) stats.crit++;
+                        else if (sFicha.adv || sSecop.adv) stats.adv++;
                         else stats.curso++;
 
                         container.innerHTML += `
                             <div class="card-otic rounded-[2.5rem] p-8 shadow-2xl">
-                                <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 border-b border-slate-700/50 pb-8 uppercase text-[10px]">
-                                    <div><p class="text-slate-500 mb-1 font-black">Proceso</p><p class="text-white font-bold text-sm leading-tight italic">${nombreProceso}</p></div>
-                                    <div><p class="text-slate-500 mb-1 font-black">Modalidad</p><p class="text-indigo-400 font-bold">${modalidad}</p></div>
-                                    <div><p class="text-slate-500 mb-1 font-black">Presupuesto</p><p class="text-emerald-400 font-mono font-bold text-lg">$${presupuesto.toLocaleString('es-CO')}</p></div>
-                                    <div><p class="text-slate-500 mb-1 font-black">Responsable Ficha Técnica</p><p class="text-slate-300 font-bold">${responsable}</p></div>
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 border-b border-slate-700/50 pb-8 uppercase">
+                                    <div><p class="text-[9px] font-black text-slate-500 mb-2">Proyecto</p><p class="text-white font-bold text-xs leading-tight">${nombreProceso}</p></div>
+                                    <div><p class="text-[9px] font-black text-slate-500 mb-2">Modalidad</p><p class="text-indigo-400 font-bold text-xs">${modalidad}</p></div>
+                                    <div><p class="text-[9px] font-black text-slate-500 mb-2">Presupuesto</p><p class="text-emerald-400 font-mono font-bold text-lg">$${presupuesto.toLocaleString('es-CO')}</p></div>
+                                    <div><p class="text-[9px] font-black text-slate-500 mb-2">Responsable Técnico</p><p class="text-slate-300 font-bold text-xs">${responsable}</p></div>
                                 </div>
 
                                 <div class="grid grid-cols-2 lg:grid-cols-7 gap-3">
-                                    ${etapa("Ficha Técnica", filas[i+7][2], filas[i+8][2], sFicha.color)}
-                                    ${etapa("Análisis Sector", filas[i+7][4], filas[i+8][4], sAnalisis.color)}
-                                    ${etapa("Estudios Previos", filas[i+7][5], filas[i+8][5], sPrevios.color)}
-                                    ${etapa("Matriz Riesgos", filas[i+7][6], filas[i+8][6], sRiesgos.color)}
-                                    
-                                    <div class="bg-indigo-900/20 p-4 rounded-2xl border border-indigo-500/30 text-center">
-                                        <p class="text-[9px] font-black uppercase mb-2 text-indigo-400 italic">SECOP II / Detalle</p>
-                                        <div class="text-[9px] text-slate-400 space-y-0.5 font-medium">
-                                            <p><span class="text-slate-600">RAD:</span> ${filas[i+22] ? filas[i+22][18] : '--'}</p>
-                                            <p><span class="text-slate-600">PROCESO:</span> ${filas[i+22] ? filas[i+22][21] : '--'}</p>
-                                        </div>
-                                    </div>
-
-                                    ${etapa("Evaluación", filas[i+7][7], filas[i+8][7], "pendiente")}
-                                    ${etapa("Adjudicación", filas[i+7][8], filas[i+8][8], "pendiente")}
+                                    ${etapa("Ficha Técnica", estados[1], fechas[1], sFicha.color)}
+                                    ${etapa("SECOP II", estados[2], fechas[2], sSecop.color)}
+                                    ${etapa("Análisis Sector", estados[3], fechas[3], sAnalisis.color)}
+                                    ${etapa("Estudios Previos", estados[4], fechas[4], sPrevios.color)}
+                                    ${etapa("Matriz Riesgos", estados[5], fechas[5], sRiesgos.color)}
+                                    ${etapa("Evaluación", estados[6], fechas[6], "pendiente")}
+                                    ${etapa("Adjudicación", estados[7], fechas[7], "pendiente")}
                                 </div>
                             </div>
                         `;
+                        // Saltamos el bloque procesado para evitar duplicados
+                        i = actIdx + 3;
                     }
                 }
 
@@ -146,7 +152,7 @@
                 document.getElementById('countEnCurso').innerText = stats.curso;
                 document.getElementById('countPendientes').innerText = stats.pend;
 
-            } catch (e) { console.error("Error cargando bloques:", e); }
+            } catch (e) { console.error("Error en renderizado:", e); }
         }
 
         function etapa(tit, est, fec, col) {
@@ -159,7 +165,7 @@
 
         function configurar() { document.getElementById('configPanel').classList.toggle('hidden'); }
         function guardarConfig() {
-            localStorage.setItem('otic_v7_final', document.getElementById('csvUrl').value.trim());
+            localStorage.setItem('otic_v8_final', document.getElementById('csvUrl').value.trim());
             location.reload();
         }
         window.onload = render;
