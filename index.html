@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablero OTIC — Gestión Contractual</title>
+    <title>Tablero OTIC — DAFP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -11,20 +11,21 @@
         .advertencia { color: #fbbf24 !important; font-weight: 800; border-bottom: 2px solid #fbbf24; }
         .en-curso { color: #34d399 !important; font-weight: 800; }
         .pendiente { color: #64748b !important; }
-        .card-otic { background: linear-gradient(145deg, #0f172a, #1e293b); border: 1px solid #334155; }
+        .card-otic { background: linear-gradient(145deg, #0f172a, #1e293b); border: 1px solid #334155; transition: transform 0.2s; }
+        .card-otic:hover { transform: translateY(-5px); }
     </style>
 </head>
-<body class="bg-[#020617] text-slate-300 p-4 md:p-8 italic-none">
+<body class="bg-[#020617] text-slate-300 p-4 md:p-8">
 
-    <header class="max-w-[1400px] mx-auto mb-8 bg-slate-900/80 p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
+    <header class="max-w-[1400px] mx-auto mb-8 bg-slate-900/80 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl">
         <div class="flex flex-col lg:flex-row justify-between items-center gap-6">
             <div>
-                <h1 class="text-3xl font-black text-white uppercase tracking-tighter italic">Tablero de Seguimiento Contractual</h1>
+                <h1 class="text-3xl font-black text-white uppercase tracking-tighter italic">Seguimiento Contractual OTIC</h1>
                 <p id="fechaActual" class="text-indigo-400 font-bold mt-1 uppercase text-[10px] tracking-widest"></p>
             </div>
             <div class="flex gap-4">
                 <div class="bg-black/40 px-6 py-4 rounded-2xl border border-slate-800 text-center">
-                    <p class="text-[10px] font-black text-slate-500 uppercase mb-1">Presupuesto en Seguimiento</p>
+                    <p class="text-[10px] font-black text-slate-500 uppercase mb-1">Presupuesto Total</p>
                     <p id="totalPresupuesto" class="text-2xl font-black text-emerald-400">$0</p>
                 </div>
                 <button onclick="configurar()" class="bg-indigo-600 hover:bg-indigo-500 text-white w-14 h-14 rounded-2xl transition-all flex items-center justify-center shadow-lg">
@@ -54,11 +55,11 @@
     </header>
 
     <div id="configPanel" class="hidden max-w-[1400px] mx-auto mb-8 bg-slate-800 p-6 rounded-2xl border border-indigo-500">
-        <input type="text" id="csvUrl" placeholder="URL del CSV de Google Sheets" class="w-full p-4 bg-slate-950 rounded-xl text-white outline-none mb-4 border border-slate-700">
-        <button onclick="guardarConfig()" class="w-full bg-emerald-600 py-4 rounded-xl font-black uppercase text-white hover:bg-emerald-500 transition-all">Actualizar Datos</button>
+        <input type="text" id="csvUrl" placeholder="URL CSV de Google Sheets" class="w-full p-4 bg-slate-950 rounded-xl text-white outline-none mb-4 border border-slate-700">
+        <button onclick="guardarConfig()" class="w-full bg-emerald-600 py-4 rounded-xl font-black uppercase text-white">Sincronizar Tablero</button>
     </div>
 
-    <main id="tablero" class="max-w-[1400px] mx-auto space-y-10 pb-24"></main>
+    <main id="tablero" class="max-w-[1400px] mx-auto space-y-12 pb-24"></main>
 
     <script>
         document.getElementById('fechaActual').innerText = new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -74,43 +75,44 @@
         }
 
         async function render() {
-            const url = localStorage.getItem('otic_v8_final');
+            const url = localStorage.getItem('otic_v9_prod');
             if (!url) return;
 
             try {
                 const res = await fetch(url);
                 const csvText = await res.text();
+                // Separación robusta por filas y celdas
                 const filas = csvText.split(/\r?\n/).map(f => f.split(',').map(c => c.trim().replace(/"/g, '')));
                 
                 let stats = { totalB: 0, crit: 0, adv: 0, curso: 0, pend: 0 };
                 const container = document.getElementById('tablero');
                 container.innerHTML = '';
 
-                // Buscador de bloques basado en la palabra "FIREWALL" o "DAFP"
                 for (let i = 0; i < filas.length; i++) {
-                    const filaActual = filas[i].join(" ");
+                    const rowStr = filas[i].join(" ").toUpperCase();
                     
-                    if (filaActual.toUpperCase().includes("FIREWALL") || filaActual.toUpperCase().includes("PROCESO SECOP")) {
-                        const nombreProceso = filas[i].find(c => c.includes("DAFP")) || "Proceso sin nombre";
+                    // Detectamos el inicio de un bloque (Nombre del proceso contiene DAFP)
+                    if (rowStr.includes("DAFP")) {
+                        const nombreProceso = filas[i].find(c => c.toUpperCase().includes("DAFP"));
                         const responsableCell = filas[i].find(c => c.includes("Responsable")) || "";
                         const responsable = responsableCell.split(":")[1]?.trim() || "No asignado";
                         
-                        // Localizar Presupuesto (usualmente 2 filas abajo)
-                        const filaPresupuesto = filas[i+2].join(" ");
-                        const pRaw = filaPresupuesto.replace(/[^0-9]/g, '') || "0";
+                        // Posiciones fijas según tu imagen
+                        const modalidad = filas[i+1] ? (filas[i+1][1] || "No definida") : "---";
+                        
+                        // Limpieza de Presupuesto (fila i+2, celda 1)
+                        const pRaw = filas[i+2] ? filas[i+2][1].replace(/[^0-9]/g, '') : "0";
                         const presupuesto = parseInt(pRaw);
                         stats.totalB += presupuesto;
 
-                        // Localizar Modalidad (1 fila abajo)
-                        const modalidad = filas[i+1].find(c => c !== "") || "No definida";
-
-                        // Localizar Actividades (Buscamos la fila que dice "Actividad")
+                        // Buscamos la fila de Actividades (está unas filas más abajo)
                         let actIdx = i;
-                        while(actIdx < i + 15 && !filas[actIdx].join("").includes("Actividad")) actIdx++;
+                        while(actIdx < i + 10 && !filas[actIdx].join("").includes("Actividad")) actIdx++;
                         
-                        const estados = filas[actIdx + 1];
-                        const fechas = filas[actIdx + 2];
+                        const estados = filas[actIdx + 1] || [];
+                        const fechas = filas[actIdx + 2] || [];
 
+                        // Mapeo de indicadores
                         const sFicha = getStatusInfo(fechas[1], estados[1]);
                         const sSecop = getStatusInfo(fechas[2], estados[2]);
                         const sAnalisis = getStatusInfo(fechas[3], estados[3]);
@@ -121,27 +123,39 @@
                         else if (sFicha.adv || sSecop.adv) stats.adv++;
                         else stats.curso++;
 
+                        // Datos de SECOP Detallados (Celdas P, S, Q, R, V mapeadas por índice)
+                        // Ajustado a los índices del CSV generado por Google Sheets
+                        const radicado = filas[i+22] ? filas[i+22][18] : (filas[i].find(c => c.length > 5 && !isNaN(c)) || '--');
+
                         container.innerHTML += `
                             <div class="card-otic rounded-[2.5rem] p-8 shadow-2xl">
                                 <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 border-b border-slate-700/50 pb-8 uppercase">
                                     <div><p class="text-[9px] font-black text-slate-500 mb-2">Proyecto</p><p class="text-white font-bold text-xs leading-tight">${nombreProceso}</p></div>
                                     <div><p class="text-[9px] font-black text-slate-500 mb-2">Modalidad</p><p class="text-indigo-400 font-bold text-xs">${modalidad}</p></div>
                                     <div><p class="text-[9px] font-black text-slate-500 mb-2">Presupuesto</p><p class="text-emerald-400 font-mono font-bold text-lg">$${presupuesto.toLocaleString('es-CO')}</p></div>
-                                    <div><p class="text-[9px] font-black text-slate-500 mb-2">Responsable Técnico</p><p class="text-slate-300 font-bold text-xs">${responsable}</p></div>
+                                    <div><p class="text-[9px] font-black text-slate-500 mb-2">Responsable Técnico</p><p class="text-slate-300 font-bold text-xs underline decoration-indigo-500/30">${responsable}</p></div>
                                 </div>
 
                                 <div class="grid grid-cols-2 lg:grid-cols-7 gap-3">
                                     ${etapa("Ficha Técnica", estados[1], fechas[1], sFicha.color)}
-                                    ${etapa("SECOP II", estados[2], fechas[2], sSecop.color)}
+                                    ${etapa("Publicación", estados[2], fechas[2], sSecop.color)}
                                     ${etapa("Análisis Sector", estados[3], fechas[3], sAnalisis.color)}
                                     ${etapa("Estudios Previos", estados[4], fechas[4], sPrevios.color)}
                                     ${etapa("Matriz Riesgos", estados[5], fechas[5], sRiesgos.color)}
-                                    ${etapa("Evaluación", estados[6], fechas[6], "pendiente")}
+                                    
+                                    <div class="bg-indigo-900/20 p-4 rounded-2xl border border-indigo-500/30 text-center">
+                                        <p class="text-[9px] font-black uppercase mb-2 text-indigo-400">Detalle SECOP II</p>
+                                        <div class="text-[9px] text-slate-400 space-y-1 font-medium">
+                                            <p><span class="text-slate-600 font-bold">RAD:</span> ${radicado}</p>
+                                            <p class="bg-indigo-600/30 text-white font-bold px-1 rounded inline-block mt-1 uppercase">Proceso: ${filas[i+22] ? filas[i+22][21] : 'Ver Excel'}</p>
+                                        </div>
+                                    </div>
+
                                     ${etapa("Adjudicación", estados[7], fechas[7], "pendiente")}
                                 </div>
                             </div>
                         `;
-                        // Saltamos el bloque procesado para evitar duplicados
+                        // Saltamos el bloque para no repetir
                         i = actIdx + 3;
                     }
                 }
@@ -152,7 +166,7 @@
                 document.getElementById('countEnCurso').innerText = stats.curso;
                 document.getElementById('countPendientes').innerText = stats.pend;
 
-            } catch (e) { console.error("Error en renderizado:", e); }
+            } catch (e) { console.error("Error en render:", e); }
         }
 
         function etapa(tit, est, fec, col) {
@@ -165,7 +179,7 @@
 
         function configurar() { document.getElementById('configPanel').classList.toggle('hidden'); }
         function guardarConfig() {
-            localStorage.setItem('otic_v8_final', document.getElementById('csvUrl').value.trim());
+            localStorage.setItem('otic_v9_prod', document.getElementById('csvUrl').value.trim());
             location.reload();
         }
         window.onload = render;
