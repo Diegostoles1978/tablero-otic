@@ -3,123 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablero Estratégico OTIC</title>
+    <title>Tablero de Seguimiento Contractual OTIC</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .critica { color: #ef4444; font-weight: 800; }
+        .advertencia { color: #f59e0b; font-weight: 800; }
+        .normal { color: #10b981; font-weight: 800; }
+    </style>
 </head>
-<body class="bg-slate-950 text-slate-200 min-h-screen pb-10">
+<body class="bg-[#0f172a] text-slate-300 font-sans p-4 md:p-8">
 
-    <header class="bg-slate-900 border-b border-slate-800 p-6 mb-8 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-black text-white italic underline decoration-indigo-500">DAFP — OTIC 2026</h1>
-            <button onclick="configurar()" class="bg-indigo-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-500 transition-all">
-                <i class="fas fa-cog mr-2"></i>CONFIGURAR DATOS
-            </button>
+    <div class="max-w-[1400px] mx-auto mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-2xl">
+        <div>
+            <h1 class="text-3xl font-black text-white tracking-tighter uppercase">Tablero de Seguimiento Contractual</h1>
+            <p id="fechaActual" class="text-indigo-400 font-bold italic"></p>
         </div>
-    </header>
-
-    <div id="configPanel" class="hidden max-w-4xl mx-auto mb-8 px-6">
-        <div class="bg-slate-900 border border-indigo-500/50 p-6 rounded-2xl shadow-2xl text-center">
-            <p class="text-xs mb-4 text-indigo-300 font-bold uppercase tracking-widest">Enlace de Google Sheets (Publicado como CSV)</p>
-            <input type="text" id="csvUrl" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" 
-                   class="w-full bg-black border border-slate-700 rounded-xl p-3 text-sm text-white mb-4 outline-none focus:border-indigo-500">
-            <button onclick="guardarConfig()" class="bg-emerald-600 w-full py-3 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-emerald-500 transition-all">Conectar Tablero</button>
+        
+        <div class="flex gap-4">
+            <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 min-w-[150px]">
+                <p class="text-[10px] uppercase font-black text-slate-500">Procesos</p>
+                <p id="totalProcesos" class="text-2xl font-black text-white">0</p>
+            </div>
+            <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 min-w-[200px]">
+                <p class="text-[10px] uppercase font-black text-slate-500">Presupuesto Total</p>
+                <p id="totalPresupuesto" class="text-2xl font-black text-emerald-400">$0</p>
+            </div>
+            <button onclick="configurar()" class="bg-indigo-600 hover:bg-indigo-500 text-white p-4 rounded-2xl self-center transition-all shadow-lg">
+                <i class="fas fa-cog"></i>
+            </button>
         </div>
     </div>
 
-    <main id="tablero" class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="max-w-[1400px] mx-auto mb-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl text-center">
+            <p class="text-[10px] font-bold text-rose-500 uppercase">Alertas Críticas</p>
+            <p id="countCriticas" class="text-2xl font-black text-rose-500">0</p>
+        </div>
+        <div class="bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl text-center">
+            <p class="text-[10px] font-bold text-amber-500 uppercase">Advertencias</p>
+            <p id="countAdvertencias" class="text-2xl font-black text-amber-500">0</p>
+        </div>
+        <div class="bg-indigo-500/10 border border-indigo-500/30 p-4 rounded-2xl text-center">
+            <p class="text-[10px] font-bold text-indigo-400 uppercase">En Curso</p>
+            <p id="countEnCurso" class="text-2xl font-black text-indigo-400">0</p>
+        </div>
+        <div class="bg-slate-500/10 border border-slate-500/30 p-4 rounded-2xl text-center">
+            <p class="text-[10px] font-bold text-slate-400 uppercase">Pendientes</p>
+            <p id="countPendientes" class="text-2xl font-black text-slate-400">0</p>
+        </div>
+    </div>
+
+    <div id="configPanel" class="hidden max-w-[1400px] mx-auto mb-8 bg-slate-800 p-6 rounded-2xl border border-indigo-500/50">
+        <input type="text" id="csvUrl" placeholder="Pega el enlace CSV de Google Sheets aquí" class="w-full p-4 bg-slate-950 rounded-xl text-indigo-300 outline-none mb-4">
+        <button onclick="guardarConfig()" class="w-full bg-emerald-600 py-4 rounded-xl font-black uppercase text-sm tracking-widest text-white hover:bg-emerald-500 transition-all">Sincronizar Datos</button>
+    </div>
+
+    <main id="tablero" class="max-w-[1400px] mx-auto space-y-8">
         </main>
 
     <script>
-        // Función avanzada para procesar CSV con encabezados dinámicos
-        function csvToJSON(csv) {
-            const lines = csv.split(/\r?\n/);
-            // Buscamos la fila que contiene los encabezados reales (usualmente la fila 2 en tu archivo)
-            let headerIndex = lines.findIndex(l => l.toLowerCase().includes('nombre del proceso') || l.toLowerCase().includes('presupuesto'));
-            if (headerIndex === -1) headerIndex = 1; // Fallback
+        document.getElementById('fechaActual').innerText = new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-            const headers = lines[headerIndex].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/"/g, '').trim().toLowerCase());
-            
-            return lines.slice(headerIndex + 1).map(line => {
-                const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                const obj = {};
-                headers.forEach((header, i) => {
-                    obj[header] = values[i] ? values[i].replace(/"/g, '').trim() : '';
-                });
-                return obj;
-            });
+        function checkStatus(fechaLim, estadoActividad) {
+            if (!fechaLim || fechaLim === "--") return { color: "normal", count: "pendiente" };
+            const hoy = new Date();
+            const limite = new Date(fechaLim);
+            const diffDays = Math.ceil((limite - hoy) / (1000 * 60 * 60 * 24));
+
+            if (diffDays < 0 || estadoActividad === "Atrasado") return { color: "critica", count: "critica" };
+            if (diffDays <= 2) return { color: "advertencia", count: "advertencia" };
+            return { color: "normal", count: "enCurso" };
         }
 
-        async function cargarTablero() {
-            const url = localStorage.getItem('dafp_otic_csv');
+        async function render() {
+            const url = localStorage.getItem('otic_v3_url');
             if (!url) return;
 
             try {
                 const res = await fetch(url);
-                const data = await res.text();
-                const json = csvToJSON(data);
+                const text = await res.text();
+                const filas = text.split(/\r?\n/).slice(2); 
+                
+                let totalP = 0, totalB = 0, cCritica = 0, cAdver = 0, cCurso = 0, cPend = 0;
                 const container = document.getElementById('tablero');
                 container.innerHTML = '';
 
-                json.forEach(item => {
-                    // Mapeo inteligente buscando palabras clave en los encabezados
-                    const nombre = item['nombre del proceso'] || item['nombre'] || 'Proceso sin nombre';
-                    const modalidad = item['modalidad de contratación'] || item['modalidad'] || 'Por definir';
-                    const mes = item['mes del proceso'] || item['mes'] || '';
-                    const responsable = item['responsable tecnico'] || item['responsable'] || 'No asignado';
-                    const presupuestoRaw = item['presupuesto'] || '0';
-                    const presupuesto = parseInt(presupuestoRaw.replace(/[^0-9]/g, '')) || 0;
-                    const estado = item['estado general del proceso'] || item['estado'] || 'Pendiente';
-                    const ficha = item['fecha límite entrega ficha(aaaa-mm-dd)'] || item['fecha límite'] || '--';
+                filas.forEach(fila => {
+                    const c = fila.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/"/g, '').trim());
+                    if (!c[2] || c[2].toLowerCase().includes("nombre")) return;
 
-                    if (!nombre || nombre === 'Proceso sin nombre') return;
+                    totalP++;
+                    const valor = parseInt(c[4].replace(/[^0-9]/g, '')) || 0;
+                    totalB += valor;
 
-                    const colorBorde = estado.toLowerCase().includes('atrasado') ? 'border-rose-500 shadow-rose-900/20' : 'border-indigo-500';
+                    // Validación de Estados según tu requerimiento
+                    const stFicha = checkStatus(c[7], c[8]); // i3 y h3
+                    const stAnalisis = checkStatus(c[13], c[10]); // n3 y k3
+                    const stPrevios = checkStatus(c[13], c[11]); // n3 y l3
+                    const stRiesgos = checkStatus(c[13], c[12]); // n3 y m3
+
+                    // Conteo de Alertas
+                    const todosEstados = [stFicha, stAnalisis, stPrevios, stRiesgos];
+                    if (todosEstados.some(e => e.count === 'critica')) cCritica++;
+                    else if (todosEstados.some(e => e.count === 'advertencia')) cAdver++;
+                    else if (c[8] === "En curso") cCurso++;
+                    else cPend++;
 
                     container.innerHTML += `
-                        <div class="bg-slate-900 border-t-4 ${colorBorde} rounded-2xl p-6 shadow-xl flex flex-col justify-between hover:scale-[1.02] transition-all">
-                            <div>
-                                <div class="flex justify-between items-start mb-4">
-                                    <span class="text-[9px] font-black bg-slate-800 text-indigo-400 px-2 py-1 rounded border border-indigo-500/20 uppercase tracking-tighter italic">${modalidad}</span>
-                                    <span class="text-[10px] text-slate-500 font-bold italic">${mes}</span>
-                                </div>
-                                <h3 class="text-white font-bold text-sm leading-tight mb-4 uppercase tracking-tight h-10 line-clamp-2">${nombre}</h3>
-                                <div class="flex items-center gap-2 text-xs text-slate-400 mb-6 border-b border-slate-800 pb-4 italic">
-                                    <i class="fas fa-user-circle text-indigo-500/50"></i>
-                                    <span>${responsable}</span>
-                                </div>
-                                <div class="bg-black/30 p-4 rounded-xl border border-slate-800/50 mb-2">
-                                    <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Presupuesto Estimado</p>
-                                    <p class="text-lg font-mono font-bold text-emerald-400 leading-none">$${presupuesto.toLocaleString('es-CO')}</p>
-                                </div>
+                        <div class="bg-slate-900 rounded-3xl p-8 border border-slate-800 shadow-xl overflow-x-auto">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 pb-8 border-b border-slate-800">
+                                <div><p class="text-[10px] font-black text-slate-500 uppercase mb-2">Nombre del Proceso</p><p class="text-white font-bold leading-tight">${c[2]}</p></div>
+                                <div><p class="text-[10px] font-black text-slate-500 uppercase mb-2">Modalidad</p><p class="text-indigo-400 font-bold">${c[3]}</p></div>
+                                <div><p class="text-[10px] font-black text-slate-500 uppercase mb-2">Presupuesto</p><p class="text-emerald-400 font-mono font-bold">$${valor.toLocaleString('es-CO')}</p></div>
+                                <div><p class="text-[10px] font-black text-slate-500 uppercase mb-2">Responsable Técnico</p><p class="text-slate-300 font-bold">${c[6]}</p></div>
                             </div>
-                            <div class="pt-4 mt-4 border-t border-slate-800 flex justify-between items-end">
-                                <div>
-                                    <p class="text-[9px] text-slate-500 font-black uppercase mb-0.5 tracking-tighter">Estado General</p>
-                                    <p class="text-[11px] font-black ${estado.toLowerCase().includes('atrasado') ? 'text-rose-500' : 'text-indigo-400'} uppercase underline underline-offset-4">${estado}</p>
+
+                            <div class="grid grid-cols-2 md:grid-cols-7 gap-4">
+                                <div class="text-center bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                                    <p class="text-[9px] uppercase font-bold mb-2 ${stFicha.color}">Ficha Técnica</p>
+                                    <p class="text-[11px] font-black text-white">${c[5] || 'Sin iniciar'}</p>
+                                    <p class="text-[10px] text-slate-500 mt-1">${c[7] || '--'}</p>
                                 </div>
-                                <div class="text-right">
-                                    <p class="text-[9px] text-slate-500 font-black uppercase mb-0.5 tracking-tighter">Límite Ficha</p>
-                                    <p class="text-[11px] font-bold text-slate-300 italic">${ficha}</p>
+                                <div class="text-center bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                                    <p class="text-[9px] uppercase font-bold mb-2 ${stAnalisis.color}">Análisis Sector</p>
+                                    <p class="text-[11px] font-black text-white">${c[10] || 'Sin iniciar'}</p>
+                                    <p class="text-[10px] text-slate-500 mt-1">${c[13] || '--'}</p>
+                                </div>
+                                <div class="text-center bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                                    <p class="text-[9px] uppercase font-bold mb-2 ${stPrevios.color}">Estudios Previos</p>
+                                    <p class="text-[11px] font-black text-white">${c[11] || 'Sin iniciar'}</p>
+                                    <p class="text-[10px] text-slate-500 mt-1">${c[13] || '--'}</p>
+                                </div>
+                                <div class="text-center bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                                    <p class="text-[9px] uppercase font-bold mb-2 ${stRiesgos.color}">Matriz Riesgos</p>
+                                    <p class="text-[11px] font-black text-white">${c[12] || 'Sin iniciar'}</p>
+                                    <p class="text-[10px] text-slate-500 mt-1">${c[13] || '--'}</p>
+                                </div>
+                                <div class="text-center bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                                    <p class="text-[9px] uppercase font-bold mb-2 text-slate-500">Publicación SECOP</p>
+                                    <p class="text-[11px] font-black text-white">${c[14] || 'Sin iniciar'}</p>
+                                    <p class="text-[10px] text-slate-500 mt-1">${c[15] || '--'}</p>
+                                </div>
+                                <div class="text-center bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                                    <p class="text-[9px] uppercase font-bold mb-2 text-slate-500">Evaluación</p>
+                                    <p class="text-[11px] font-black text-white">${c[17] || 'Sin iniciar'}</p>
+                                    <p class="text-[10px] text-slate-500 mt-1">${c[18] || '--'}</p>
+                                </div>
+                                <div class="text-center bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                                    <p class="text-[9px] uppercase font-bold mb-2 text-slate-500">Adjudicación</p>
+                                    <p class="text-[11px] font-black text-white">${c[19] || 'Sin iniciar'}</p>
+                                    <p class="text-[10px] text-slate-500 mt-1">${c[20] || '--'}</p>
                                 </div>
                             </div>
                         </div>
                     `;
                 });
-            } catch (e) {
-                console.error("Error cargando el tablero dinámico", e);
-            }
+
+                // Actualizar contadores superiores
+                document.getElementById('totalProcesos').innerText = totalP;
+                document.getElementById('totalPresupuesto').innerText = '$' + totalB.toLocaleString('es-CO');
+                document.getElementById('countCriticas').innerText = cCritica;
+                document.getElementById('countAdvertencias').innerText = cAdver;
+                document.getElementById('countEnCurso').innerText = cCurso;
+                document.getElementById('countPendientes').innerText = cPend;
+
+            } catch (e) { console.error(e); }
         }
 
         function configurar() { document.getElementById('configPanel').classList.toggle('hidden'); }
         function guardarConfig() {
-            const url = document.getElementById('csvUrl').value.trim();
-            if(url) {
-                localStorage.setItem('dafp_otic_csv', url);
-                location.reload();
-            }
+            localStorage.setItem('otic_v3_url', document.getElementById('csvUrl').value.trim());
+            location.reload();
         }
-        window.onload = cargarTablero;
+        window.onload = render;
     </script>
 </body>
 </html>
