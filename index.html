@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablero OTIC — Gestión por Bloques</title>
+    <title>Tablero OTIC — Dinámico</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -14,17 +14,14 @@
         .card-otic { background: linear-gradient(145deg, #0f172a, #1e293b); border: 1px solid #334155; }
     </style>
 </head>
-<body class="bg-[#020617] text-slate-300 p-4 md:p-8">
+<body class="bg-[#020617] text-slate-300 p-4 md:p-8 font-sans">
 
-    <header class="max-w-[1400px] mx-auto mb-8 bg-slate-900/80 p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
+    <header class="max-w-[1200px] mx-auto mb-8 bg-slate-900/80 p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
         <div class="flex flex-col lg:flex-row justify-between items-center gap-6">
-            <div>
-                <h1 class="text-3xl font-black text-white uppercase tracking-tighter italic">Seguimiento Contractual OTIC</h1>
-                <p id="fechaActual" class="text-indigo-400 font-bold mt-1 uppercase text-[10px] tracking-widest"></p>
-            </div>
-            <div class="flex gap-4">
-                <div class="bg-black/40 px-6 py-4 rounded-2xl border border-slate-800 text-center">
-                    <p class="text-[10px] font-black text-slate-500 uppercase mb-1 italic">Presupuesto Total</p>
+            <h1 class="text-3xl font-black text-white uppercase italic tracking-tighter">Control Contractual OTIC</h1>
+            <div class="flex items-center gap-4">
+                <div class="bg-black/40 px-6 py-3 rounded-2xl border border-slate-800 text-center">
+                    <p class="text-[10px] font-black text-slate-500 uppercase mb-1">Presupuesto en Gestión</p>
                     <p id="totalPresupuesto" class="text-2xl font-black text-emerald-400">$0</p>
                 </div>
                 <button onclick="configurar()" class="bg-indigo-600 hover:bg-indigo-500 text-white w-14 h-14 rounded-2xl transition-all flex items-center justify-center shadow-lg">
@@ -32,99 +29,113 @@
                 </button>
             </div>
         </div>
-
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-            <div class="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl text-center">
-                <p class="text-[10px] font-black text-rose-500 uppercase italic">Críticas</p>
-                <p id="countCriticas" class="text-2xl font-black text-rose-500">0</p>
-            </div>
-            <div class="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl text-center">
-                <p class="text-[10px] font-black text-amber-500 uppercase italic">Alertas</p>
-                <p id="countAdvertencias" class="text-2xl font-black text-amber-500">0</p>
-            </div>
-            <div class="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl text-center">
-                <p class="text-[10px] font-black text-emerald-400 uppercase italic">Ok</p>
-                <p id="countEnCurso" class="text-2xl font-black text-emerald-400">0</p>
-            </div>
-            <div class="bg-slate-800/30 border border-slate-700/30 p-4 rounded-2xl text-center">
-                <p class="text-[10px] font-black text-slate-500 uppercase italic">Pendientes</p>
-                <p id="countPendientes" class="text-2xl font-black text-slate-500">0</p>
-            </div>
-        </div>
     </header>
 
-    <div id="configPanel" class="hidden max-w-[1400px] mx-auto mb-8 bg-slate-800 p-6 rounded-2xl border border-indigo-500">
-        <input type="text" id="csvUrl" placeholder="URL del CSV (Google Sheets)" class="w-full p-4 bg-slate-950 rounded-xl text-white outline-none mb-4 border border-slate-700">
-        <button onclick="guardarConfig()" class="w-full bg-emerald-600 py-4 rounded-xl font-black uppercase text-white hover:bg-emerald-500 transition-all">Actualizar Tablero</button>
+    <div id="configPanel" class="hidden max-w-[1200px] mx-auto mb-8 bg-slate-800 p-6 rounded-2xl border border-indigo-500">
+        <input type="text" id="csvUrl" placeholder="URL del CSV de Google Sheets" class="w-full p-4 bg-slate-950 rounded-xl text-white outline-none mb-4 border border-slate-700">
+        <button onclick="guardarConfig()" class="w-full bg-emerald-600 py-4 rounded-xl font-black uppercase text-white hover:bg-emerald-500 transition-all italic">Vincular Datos</button>
     </div>
 
-    <main id="tablero" class="max-w-[1400px] mx-auto space-y-10 pb-24"></main>
+    <main id="tablero" class="max-w-[1200px] mx-auto space-y-10 pb-24"></main>
 
     <script>
-        document.getElementById('fechaActual').innerText = new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
         function getStatusInfo(fechaLim, estadoTexto) {
-            if (!fechaLim || fechaLim === "" || fechaLim.toLowerCase().includes("fecha")) return { color: "pendiente", crit: 0, adv: 0 };
+            if (!fechaLim || fechaLim === "" || fechaLim.toLowerCase().includes("fecha")) return { color: "pendiente" };
             const hoy = new Date();
             const limite = new Date(fechaLim);
             const diffDays = Math.ceil((limite - hoy) / (1000 * 60 * 60 * 24));
-            if (diffDays < 0 || (estadoTexto && estadoTexto.toLowerCase().includes("atrasado"))) return { color: "critica", crit: 1, adv: 0 };
-            if (diffDays <= 3) return { color: "advertencia", crit: 0, adv: 1 };
-            return { color: "en-curso", crit: 0, adv: 0 };
+            if (diffDays < 0 || (estadoTexto && estadoTexto.toLowerCase().includes("atrasado"))) return { color: "critica" };
+            if (diffDays <= 3) return { color: "advertencia" };
+            return { color: "en-curso" };
         }
 
         async function render() {
-            const url = localStorage.getItem('otic_v13_block');
-            if (!url) return;
+            const url = localStorage.getItem('otic_v14_final');
+            if (!url) { document.getElementById('configPanel').classList.remove('hidden'); return; }
 
             try {
                 const res = await fetch(url);
-                const csvText = await res.text();
-                // Detección automática de separador regional
-                const sep = csvText.split('\n')[16].includes(';') ? ';' : ',';
-                const filas = csvText.split(/\r?\n/).map(f => f.split(sep).map(c => c.trim().replace(/"/g, '')));
+                const csvRaw = await res.text();
+                const sep = csvRaw.includes(';') ? ';' : ',';
+                const filas = csvRaw.split(/\r?\n/).map(f => f.split(sep).map(c => c.trim().replace(/"/g, '')));
                 
-                let stats = { totalB: 0, crit: 0, adv: 0, curso: 0, pend: 0 };
+                let totalB = 0;
                 const container = document.getElementById('tablero');
                 container.innerHTML = '';
 
                 for (let i = 0; i < filas.length; i++) {
-                    // Buscamos la fila donde inicia el nombre del proceso (Contiene DAFP)
-                    const nombreCelda = filas[i][1] || "";
+                    const rStr = filas[i].join(" ").toUpperCase();
                     
-                    if (nombreCelda.toUpperCase().includes("DAFP")) {
+                    // Detectar inicio de bloque
+                    if (rStr.includes("DAFP")) {
+                        let bloque = { nombre: "", resp: "No asignado", mod: "No def.", pres: 0, estados: [], fechas: [] };
                         
-                        const nombre = nombreCelda;
-                        const responsableRaw = filas[i][7] || "";
-                        const responsable = responsableRaw.split(":")[1]?.trim() || "No asignado";
-                        
-                        const modalidad = filas[i+1] ? filas[i+1][1] : "---";
-                        
-                        // Presupuesto: 2 filas abajo del nombre, columna 1 (B)
-                        const pRaw = (filas[i+2] && filas[i+2][1]) ? filas[i+2][1].replace(/[^0-9]/g, '') : "0";
-                        const presupuesto = parseInt(pRaw);
-                        stats.totalB += presupuesto;
+                        // 1. Extraer Nombre y Responsable de la fila actual
+                        bloque.nombre = filas[i].find(c => c.toUpperCase().includes("DAFP")) || "Proceso";
+                        let respCell = filas[i].find(c => c.toLowerCase().includes("responsable"));
+                        if (respCell) bloque.resp = respCell.split(":")[1]?.trim() || respCell;
 
-                        // Actividades: 7 y 8 filas abajo del nombre
-                        const estados = filas[i+7] || [];
-                        const fechas = filas[i+8] || [];
+                        // 2. Escanear las siguientes 10 filas para encontrar Presupuesto y Actividades
+                        for (let j = i + 1; j < i + 12; j++) {
+                            if (!filas[j]) continue;
+                            const filaSiguienteStr = filas[j].join(" ");
+                            
+                            // Presupuesto
+                            if (filaSiguienteStr.toLowerCase().includes("presupuesto")) {
+                                const num = filaSiguienteStr.replace(/[^0-9]/g, '');
+                                bloque.pres = parseInt(num) || 0;
+                            }
+                            // Modalidad (fila justo después del nombre usualmente)
+                            if (j === i + 1) bloque.mod = filas[j].find(c => c.length > 2) || "---";
 
-                        const ind = [
-                            getStatusInfo(fechas[1], estados[1]), // Ficha
-                            getStatusInfo(fechas[2], estados[2]), // SECOP
-                            getStatusInfo(fechas[3], estados[3]), // Análisis
-                            getStatusInfo(fechas[4], estados[4]), // Previos
-                            getStatusInfo(fechas[5], estados[5])  // Riesgos
-                        ];
+                            // Tabla de Actividades
+                            if (filaSiguienteStr.toLowerCase().includes("actividad")) {
+                                bloque.estados = filas[j+1] || [];
+                                bloque.fechas = filas[j+2] || [];
+                            }
+                        }
 
-                        ind.forEach(s => {
-                            if (s.crit) stats.crit++;
-                            else if (s.adv) stats.adv++;
-                            else if (s.color === "en-curso") stats.curso++;
-                            else stats.pend++;
-                        });
+                        totalB += bloque.pres;
 
                         container.innerHTML += `
                             <div class="card-otic rounded-[2.5rem] p-8 shadow-2xl">
-                                <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 border-b border-slate-700/50 pb-8 uppercase">
-                                    <div><p class="text-[9px] font-black text-slate-500 mb-2 tracking-widest">Proyecto</p><p class="text-white font-bold text
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 border-b border-slate-700/50 pb-6 uppercase italic">
+                                    <div><p class="text-[9px] font-black text-slate-500 mb-1">Proyecto</p><p class="text-white font-bold text-xs">${bloque.nombre}</p></div>
+                                    <div><p class="text-[9px] font-black text-slate-500 mb-1">Modalidad</p><p class="text-indigo-400 font-bold text-xs">${bloque.mod}</p></div>
+                                    <div><p class="text-[9px] font-black text-slate-500 mb-1">Presupuesto</p><p class="text-emerald-400 font-mono font-bold text-lg">$${bloque.pres.toLocaleString('es-CO')}</p></div>
+                                    <div><p class="text-[9px] font-black text-slate-500 mb-1">Responsable</p><p class="text-slate-300 font-bold text-xs underline decoration-indigo-500/30">${bloque.resp}</p></div>
+                                </div>
+                                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                    ${etapa("Ficha Técnica", bloque.estados[1], bloque.fechas[1])}
+                                    ${etapa("Publicación", bloque.estados[2], bloque.fechas[2])}
+                                    ${etapa("Análisis Sector", bloque.estados[3], bloque.fechas[3])}
+                                    ${etapa("Estudios Previos", bloque.estados[4], bloque.fechas[4])}
+                                    ${etapa("Matriz Riesgos", bloque.estados[5], bloque.fechas[5])}
+                                </div>
+                            </div>
+                        `;
+                        i += 15; // Saltar al siguiente bloque
+                    }
+                }
+                document.getElementById('totalPresupuesto').innerText = '$' + totalB.toLocaleString('es-CO');
+            } catch (e) { console.error("Error:", e); }
+        }
+
+        function etapa(tit, est, fec) {
+            const info = getStatusInfo(fec, est);
+            return `<div class="bg-black/30 p-4 rounded-2xl border border-slate-800/50 text-center">
+                <p class="text-[9px] font-black uppercase mb-1 ${info.color}">${tit}</p>
+                <p class="text-[10px] font-bold text-white leading-tight mb-1">${est || '---'}</p>
+                <p class="text-[9px] font-mono text-slate-500 italic">${fec || '--'}</p>
+            </div>`;
+        }
+
+        function configurar() { document.getElementById('configPanel').classList.toggle('hidden'); }
+        function guardarConfig() {
+            localStorage.setItem('otic_v14_final', document.getElementById('csvUrl').value.trim());
+            location.reload();
+        }
+        window.onload = render;
+    </script>
+</body>
+</html>
