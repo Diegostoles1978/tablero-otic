@@ -2,40 +2,39 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablero OTIC — Control Total</title>
+    <title>Tablero OTIC — Control de Procesos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .critica { border-top: 4px solid #ef4444; background: linear-gradient(to bottom, rgba(239, 68, 68, 0.05), transparent); }
-        .advertencia { border-top: 4px solid #f59e0b; }
-        .completado { border-top: 4px solid #10b981; }
-        .card-shadow { box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); }
+        .card-otic { background: linear-gradient(145deg, #0f172a, #1e293b); border: 1px solid #334155; transition: all 0.3s ease; }
+        .card-otic:hover { border-color: #6366f1; transform: translateY(-5px); }
+        .atrasado { border-top: 5px solid #ef4444; }
+        .completado { border-top: 5px solid #10b981; }
+        .en-curso { border-top: 5px solid #f59e0b; }
     </style>
 </head>
-<body class="bg-[#020617] text-slate-300 p-4 md:p-8 font-sans">
+<body class="bg-[#020617] text-slate-300 p-6 font-sans">
 
     <div class="max-w-[1400px] mx-auto">
-        <header class="flex flex-col md:flex-row justify-between items-center mb-8 bg-slate-900/80 p-8 rounded-[2.5rem] border border-slate-800">
+        <header class="flex flex-col md:row justify-between items-center mb-10 bg-slate-900/80 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl">
             <div>
-                <h1 class="text-3xl font-black text-white italic uppercase tracking-tighter">Control OTIC 2026</h1>
-                <p id="fecha" class="text-indigo-400 text-[10px] font-bold uppercase mt-1 tracking-[0.2em]"></p>
+                <h1 class="text-3xl font-black text-white italic uppercase tracking-tighter">Seguimiento Contractual</h1>
+                <p class="text-indigo-400 text-[10px] font-bold uppercase mt-1 tracking-[0.3em]">Oficina de Tecnologías de la Información</p>
             </div>
             <div class="flex items-center gap-6 mt-4 md:mt-0">
                 <div class="text-right">
-                    <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">Presupuesto Total</p>
-                    <p id="totalGlobal" class="text-3xl font-black text-emerald-400">$0</p>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">Presupuesto Total (E)</p>
+                    <p id="totalGlobal" class="text-3xl font-black text-emerald-400 font-mono">$0</p>
                 </div>
-                <button onclick="document.getElementById('setup').classList.toggle('hidden')" class="bg-indigo-600 p-4 rounded-2xl text-white hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20">
-                    <i class="fas fa-sync-alt"></i>
+                <button onclick="document.getElementById('setup').classList.toggle('hidden')" class="bg-indigo-600 hover:bg-indigo-500 p-4 rounded-2xl text-white transition-all">
+                    <i class="fas fa-database"></i>
                 </button>
             </div>
         </header>
 
-        <div id="setup" class="hidden mb-8 bg-slate-800/50 p-6 rounded-2xl border border-indigo-500/30 backdrop-blur-xl">
-            <label class="text-xs font-bold text-indigo-300 block mb-2 uppercase">URL de Publicación CSV (Google Sheets)</label>
-            <input type="text" id="urlInput" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" class="w-full p-4 bg-black/50 rounded-xl text-white border border-slate-700 outline-none focus:border-indigo-500 transition-all mb-4">
-            <button onclick="saveUrl()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-xl font-black text-white uppercase tracking-widest transition-all">Conectar Tablero</button>
+        <div id="setup" class="hidden mb-8 bg-slate-800/40 p-6 rounded-2xl border border-indigo-500/30">
+            <input type="text" id="urlInput" placeholder="Pega la URL del CSV (Hoja BASE)" class="w-full p-4 bg-black/50 rounded-xl text-white border border-slate-700 outline-none mb-4">
+            <button onclick="saveUrl()" class="w-full bg-indigo-600 py-4 rounded-xl font-black text-white uppercase tracking-widest">Sincronizar Datos</button>
         </div>
 
         <div id="tablero" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -43,98 +42,62 @@
     </div>
 
     <script>
-        document.getElementById('fecha').innerText = new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-        function getStyle(estado) {
-            const e = (estado || "").toLowerCase();
-            if (e.includes("atrasado")) return { class: "critica", text: "text-red-500", icon: "fa-exclamation-triangle" };
-            if (e.includes("completado")) return { class: "completado", text: "text-emerald-400", icon: "fa-check-circle" };
-            if (e.includes("en curso")) return { class: "advertencia", text: "text-amber-400", icon: "fa-clock" };
-            return { class: "normal", text: "text-slate-500", icon: "fa-circle" };
-        }
-
         async function update() {
-            const url = localStorage.getItem('otic_final_url');
+            const url = localStorage.getItem('otic_v16_final');
             if (!url) { document.getElementById('setup').classList.remove('hidden'); return; }
 
             try {
                 const res = await fetch(url);
                 const csv = await res.text();
-                // Detector de separador (Regional)
-                const sep = csv.split('\n')[2].includes(';') ? ';' : ',';
+                const sep = csv.includes(';') ? ';' : ',';
                 const rows = csv.split(/\r?\n/).map(r => r.split(sep).map(c => c.trim().replace(/"/g, '')));
                 
                 const container = document.getElementById('tablero');
                 container.innerHTML = '';
                 let grandTotal = 0;
 
-                // Empezamos en la fila 2 (la tercera fila real de tu Excel)
+                // Empezamos en i=2 (Fila 3 del Excel)
                 for (let i = 2; i < rows.length; i++) {
                     const data = rows[i];
-                    if (!data[2] || data[2] === "") continue;
+                    
+                    // Validamos que exista un nombre de proceso en la columna C (índice 2)
+                    // Y que la columna B (Mes) no esté vacía para evitar leer notas sueltas
+                    if (!data[2] || data[2] === "" || data[2].length < 3 || !data[1]) continue;
 
                     const nombre = data[2];
-                    const modalidad = data[3];
-                    const presVal = parseInt(data[4]) || 0;
-                    const resp = data[6];
-                    const estGeneral = data[8];
-                    
-                    grandTotal += presVal;
-                    const style = getStyle(estGeneral);
+                    const modalidad = data[3] || "N/A";
+                    const presupuesto = parseInt(data[4]) || 0; // Columna E (Índice 4)
+                    const responsableTecnico = data[6] || "Por asignar"; // Columna G (Índice 6)
+                    const estadoGral = data[8] || "Sin iniciar";
+                    const obs = data[27] || ""; // Columna AB (Observaciones)
+
+                    grandTotal += presupuesto;
+
+                    let statusClass = "en-curso";
+                    if (estadoGral.toLowerCase().includes("atrasado")) statusClass = "atrasado";
+                    if (estadoGral.toLowerCase().includes("completado")) statusClass = "completado";
 
                     container.innerHTML += `
-                        <div class="bg-slate-900/60 rounded-[2.5rem] p-7 border border-slate-800/50 card-shadow transition-all hover:border-indigo-500/30 ${style.class}">
+                        <div class="card-otic rounded-[2.5rem] p-7 shadow-2xl ${statusClass}">
                             <div class="flex justify-between items-start mb-4">
-                                <span class="px-3 py-1 bg-slate-800 rounded-lg text-[9px] font-black text-indigo-400 uppercase tracking-tighter">${modalidad}</span>
-                                <i class="fas ${style.icon} ${style.text} text-lg"></i>
+                                <span class="bg-slate-800 text-indigo-400 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter">${modalidad}</span>
+                                <span class="text-[10px] font-bold text-slate-500 uppercase">${data[1]}</span>
                             </div>
                             
-                            <h3 class="text-white font-bold text-sm leading-snug mb-6 h-12 overflow-hidden italic uppercase">${nombre}</h3>
+                            <h3 class="text-white font-bold text-sm mb-6 h-12 overflow-hidden uppercase italic leading-tight">${nombre}</h3>
 
-                            <div class="flex justify-between items-end mb-6">
-                                <div>
-                                    <p class="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-widest">Presupuesto</p>
-                                    <p class="text-xl font-black text-emerald-400 font-mono italic">$${presVal.toLocaleString('es-CO')}</p>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-widest">Responsable</p>
-                                    <p class="text-slate-300 text-[10px] font-bold underline decoration-indigo-500/40">${resp}</p>
+                            <div class="space-y-4 mb-6">
+                                <div class="flex justify-between items-end border-b border-slate-800 pb-2">
+                                    <div>
+                                        <p class="text-[8px] text-slate-500 font-bold uppercase tracking-widest">Presupuesto</p>
+                                        <p class="text-xl font-black text-emerald-400 font-mono">$${presupuesto.toLocaleString('es-CO')}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-[8px] text-slate-500 font-bold uppercase tracking-widest">Responsable Técnico</p>
+                                        <p class="text-slate-300 text-[10px] font-bold italic">${responsableTecnico}</p>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="space-y-3 bg-black/20 p-4 rounded-2xl border border-slate-800/40">
-                                ${item("Ficha Técnica", data[5], data[7])}
-                                ${item("Análisis Sector", data[10], "---")}
-                                ${item("Estudios Previos", data[11], "---")}
-                                ${item("Matriz Riesgos", data[12], "---")}
-                                ${item("SECOP II", data[14], data[15])}
-                            </div>
-                        </div>
-                    `;
-                }
-                document.getElementById('totalGlobal').innerText = '$' + grandTotal.toLocaleString('es-CO');
-            } catch (e) { alert("Error al leer los datos. Revisa la URL del CSV."); }
-        }
-
-        function item(label, estado, fecha) {
-            const s = getStyle(estado);
-            return `
-                <div class="flex justify-between items-center text-[10px]">
-                    <span class="text-slate-500 font-bold uppercase tracking-tighter">${label}</span>
-                    <div class="flex items-center gap-2">
-                        <span class="${s.text} font-black">${estado || '---'}</span>
-                        <span class="text-slate-600 font-mono text-[9px] italic">${fecha && fecha !== '---' ? fecha : ''}</span>
-                    </div>
-                </div>
-            `;
-        }
-
-        function saveUrl() {
-            const val = document.getElementById('urlInput').value.trim();
-            if (val) { localStorage.setItem('otic_final_url', val); location.reload(); }
-        }
-
-        window.onload = update;
-    </script>
-</body>
-</html>
+                            <div class="bg-black/20 p-4 rounded-2xl border border-slate-800/50">
+                                <p class="text-[9px] text-indigo-500 font-black uppercase mb-3 tracking-widest text
