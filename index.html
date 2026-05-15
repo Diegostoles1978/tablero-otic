@@ -2,13 +2,90 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Test OK</title>
-<script src="https://cdn.tailwindpt>
+<title>OTIC</title>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-black text-white p-6">
+<body class="bg-slate-900 text-white p-6">
 
-<h1 class="text-3xl">✅ FUNCIONA</h1>
+<div class="max-w-3xl mx-auto">
+
+<h1 class="text-2xl font-bold mb-4">📊 Proyecto</h1>
+
+<button onclick="load()" class="bg-indigo-600 px-4 py-2 rounded mb-4">
+Cargar datos
+</button>
+
+<div id="card"></div>
+
+</div>
+
+<script>
+
+async function load() {
+
+    try {
+
+        const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQZSnc6zf2k6ICNeut_QXegHFOWtDdiSX_LY4qg1LqP4z3iYNUwcXMdgNaZODcy8Q/pub?output=csv";
+
+        const res = await fetch(url + "&t=" + new Date().getTime());
+        const csv = await res.text();
+
+        const rows = csv.split(/\r?\n/).map(r => r.split(","));
+
+        // ✅ VALIDACIÓN CLAVE
+        if (!rows || rows.length < 3) {
+            document.getElementById("card").innerHTML = "❌ No hay datos";
+            return;
+        }
+
+        const r = rows[2];
+
+        if (!r || r.length < 9) {
+            document.getElementById("card").innerHTML = "❌ Fila inválida";
+            return;
+        }
+
+        const nombre = r[2] || "Sin nombre";
+        const modalidad = r[3] || "-";
+        const responsable = r[6] || "-";
+        const estado = r[8] || "-";
+
+        // ✅ limpiar número sin romper
+        let presupuesto = 0;
+        if (r[4]) {
+            presupuesto = Number(r[4].replace(/\$/g,"").replace(/,/g,""));
+        }
+
+        document.getElementById("card").innerHTML = `
+            <div class="bg-slate-800 p-6 rounded-xl shadow-lg">
+
+                <h2 class="text-xl font-bold mb-3">${nombre}</h2>
+
+                <p class="text-sm mb-1">👤 ${responsable}</p>
+                <p class="text-sm mb-2">📄 ${modalidad}</p>
+
+                <p class="text-emerald-400 font-mono text-lg mb-3">
+                    💰 $${presupuesto.toLocaleString('es-CO')}
+                </p>
+
+                <p class="bg-indigo-600 inline-block px-3 py-1 rounded text-xs">
+                    Estado: ${estado}
+                </p>
+
+            </div>
+        `;
+
+    } catch (error) {
+
+        console.error(error);
+        document.getElementById("card").innerHTML =
+        "❌ Error cargando datos (ver consola F12)";
+    }
+}
+
+</script>
 
 </body>
 </html>
+``
