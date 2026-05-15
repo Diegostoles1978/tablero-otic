@@ -1,30 +1,20 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>OTIC</title>https://cdn.tailwindcss.comscript></head>
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>OTIC</title><script src="https://cdn.tailwindcss.com"></script></head>
 <body class="bg-slate-900 text-white p-6">
+
 <div class="max-w-3xl mx-auto">
 <h1 class="text-2xl font-bold mb-4">📊 Proyecto (Etapas)</h1>
 
-<input id="url" placeholder="Pega URL CSV aquí" class="w-full p-3 text-black rounded mb-4">
+<input id="url" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vQZSnc6zf2k6ICNeut_QXegHFOWtDdiSX_LY4qg1LqP4z3iYNUwcXMdgNaZODcy8Q/pub?output=csv"
+class="w-full p-3 text-black rounded mb-4">
 
 <button onclick="load()" class="bg-indigo-600 px-4 py-2 rounded">Cargar</button>
 
 <div id="error" class="text-red-400 mt-4"></div>
 <div id="card" class="mt-6"></div>
+
 </div>
 
 <script>
-
-function load(){
-    let u=document.getElementById("url").value.trim();
-
-    if(!u.includes("output=csv")){
-        document.getElementById("error").innerText =
-        "❌ La URL debe terminar en &output=csv";
-        return;
-    }
-
-    localStorage.setItem("csv",u);
-    render();
-}
 
 function color(e){
     e=(e||"").toLowerCase();
@@ -35,78 +25,14 @@ function color(e){
     return "bg-slate-600";
 }
 
-async function render(){
+async function load(){
 
-    const url=localStorage.getItem("csv");
-    if(!url) return;
+    const url=document.getElementById("url").value;
 
-    try {
+    try{
+        const res = await fetch(url + "&nocache=" + new Date().getTime());
+        const csv = await res.text();
 
-        const res=await fetch(url + "&nocache=" + new Date().getTime());
-        const csv=await res.text();
 
-        if(!csv || csv.length < 50){
-            throw "CSV vacío o incorrecto";
-        }
-
-        const sep=csv.split("\n")[2].includes(";")?";":",";
-        const rows=csv.split(/\r?\n/)
-            .map(r=>r.split(sep)
-            .map(c=>c.replace(/"/g,"").trim()));
-
-        let r=null;
-
-        for(let i=2;i<rows.length;i++){
-            if(rows[i][2] && rows[i][2].length>3){
-                r=rows[i];
-                break;
-            }
-        }
-
-        if(!r) throw "No se encontraron datos válidos";
-
-        const nombre=r[2];
-        const modalidad=r[3];
-        const presupuesto=parseInt((r[4]||"").replace(/[^0-9]/g,''))||0;
-        const responsable=r[6];
-        const estado=r[8];
-
-        document.getElementById("card").innerHTML = `
-        <div class="bg-slate-800 p-6 rounded-xl">
-
-            <h2 class="text-xl font-bold mb-2 uppercase italic">${nombre}</h2>
-
-            <p class="text-sm text-gray-400">👤 ${responsable}</p>
-            <p class="text-sm text-gray-400 mb-2">📄 ${modalidad}</p>
-
-            <p class="text-emerald-400 font-mono text-lg mb-4">
-                💰 $${presupuesto.toLocaleString('es-CO')}
-            </p>
-
-            <div class="bg-slate-900 p-4 rounded-xl">
-
-                <p class="text-xs text-indigo-400 mb-3">
-                    Estado general: ${estado}
-                </p>
-
-                <div class="space-y-2 text-sm">
-
-                    <div class="flex justify-between">
-                        <span>Ficha técnica</span>
-                        <span class="px-2 rounded ${color(r[5])}">${r[5]||'-'}</span>
-                    </div>
-
-                    <div class="flex justify-between">
-                        <span>Análisis del sector</span>
-                        <span class="px-2 rounded ${color(r[10])}">${r[10]||'-'}</span>
-                    </div>
-
-                    <div class="flex justify-between">
-                        <span>Estudios previos</span>
-                        <span class="px-2 rounded ${color(r[11])}">${r[11]||'-'}</span>
-                    </div>
-
-                    <div class="flex justify-between">
-                        <span>Matriz de riesgo</span>
 
 
