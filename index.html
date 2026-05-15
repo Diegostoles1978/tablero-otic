@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <title>OTIC</title>
-<script src="https://cdn.tailwindcss.com"></script>
-</head>
+
+<script src="https://cdn.tailwindcss.comhead>
 
 <body class="bg-slate-900 text-white p-6">
 
@@ -22,77 +22,32 @@ Cargar datos
 
 <script>
 
-function renderSafe(nombre, modalidad, responsable, estado, presupuesto){
+function load(){
+
+    const nombre = "Conectividad";
+    const responsable = "David Sanchez";
+    const modalidad = "AMP";
+    const estado = "Completado";
+    const presupuesto = 176736000;
 
     document.getElementById("card").innerHTML = `
-        <div class="bg-slate-800 p-6 rounded-xl shadow-lg">
+        <div class="bg-slate-800 p-6 rounded-xl">
 
             <h2 class="text-xl font-bold mb-3">${nombre}</h2>
 
-            <p class="text-sm mb-1">👤 ${responsable}</p>
-            <p class="text-sm mb-2">📄 ${modalidad}</p>
+            <p>👤 ${responsable}</p>
+            <p>📄 ${modalidad}</p>
 
-            <p class="text-emerald-400 font-mono text-lg mb-3">
-                💰 $${presupuesto.toLocaleString('es-CO')}
+            <p class="text-emerald-400">
+                💰 $${presupuesto.toLocaleString("es-CO")}
             </p>
 
-            <p class="bg-indigo-600 inline-block px-3 py-1 rounded text-xs">
+            <p class="bg-indigo-600 px-3 py-1 inline-block rounded text-xs">
                 Estado: ${estado}
             </p>
 
         </div>
     `;
-}
-
-async function load(){
-
-    try {
-
-        const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQZSnc6zf2k6ICNeut_QXegHFOWtDdiSX_LY4qg1LqP4z3iYNUwcXMdgNaZODcy8Q/pub?output=csv";
-
-        const res = await fetch(url + "&t=" + new Date().getTime());
-        const csv = await res.text();
-
-        if(!csv || csv.length < 50){
-            throw "CSV vacío";
-        }
-
-        const rows = csv.split(/\r?\n/).map(r => r.split(","));
-
-        if(!rows[2]){
-            throw "Fila no existe";
-        }
-
-        const r = rows[2];
-
-        // ✅ protección total
-        const nombre = r[2] || "Sin nombre";
-        const modalidad = r[3] || "-";
-        const responsable = r[6] || "-";
-        const estado = r[8] || "-";
-
-        let presupuesto = 0;
-        if(r[4]){
-            presupuesto = Number(r[4].replace(/\$/g,"").replace(/,/g,""));
-        }
-
-        if(isNaN(presupuesto)) presupuesto = 0;
-
-        renderSafe(nombre, modalidad, responsable, estado, presupuesto);
-
-    } catch(e){
-
-        console.error("ERROR CONTROLADO:", e);
-
-        // ✅ fallback visual (esto evita pantalla en blanco)
-        renderSafe(
-            "Conectividad (demo)",
-            "AMP",
-            "David Sanchez",
-            "Completado",
-            176736000
-        );
-    }
 }
 
 </script>
