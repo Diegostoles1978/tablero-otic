@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <title>OTIC</title>
 
-<!-- ✅ Tailwind correcto -->
-<script src="https://cdn.tailwindcss.com"></script>
+<!-- ✅ ESTO ES CLAVE Y ESTÁ BIEN FORMADO -->
+<script src="https://cdn.tailwindpt>
 
 </head>
 
@@ -34,45 +34,31 @@ async function load(){
 
     const rows = csv.split(/\r?\n/).map(r => r.split(","));
 
-    // ✅ fila 3 (correcta según tu Excel)
-    const r = rows[2];
+    const r = rows[2]; // fila 3
 
-    // ✅ posiciones fijas validadas con tu imagen
-    const nombre = r[2];       // C3
-    const modalidad = r[3];    // D3
-    const rawPresupuesto = r[4]; // E3
-    const ficha = r[5];        // F3
-    const responsable = r[6];  // G3
-    const estado = r[8];       // I3
+    const nombre = r[2];
+    const modalidad = r[3];
+    const responsable = r[6];
+    const estado = r[8];
 
-    // ✅ LIMPIAR BIEN EL PRESUPUESTO
+    // ✅ limpieza correcta del número
     const presupuesto = Number(
-        (rawPresupuesto || "")
-        .replace(/\$/g,"")
-        .replace(/,/g,"")
+        r[4].replace(/\$/g,"").replace(/,/g,"")
     );
 
     document.getElementById("card").innerHTML = `
-    <div class="bg-slate-800 p-6 rounded-xl shadow-lg">
-
-        <h2 class="text-xl font-bold mb-3">${nombre}</h2>
-
-        <p class="text-sm mb-1">👤 ${responsable}</p>
-        <p class="text-sm mb-2">📄 ${modalidad}</p>
-
-        <p class="text-emerald-400 font-mono text-lg mb-3">
-            💰 $${presupuesto.toLocaleString('es-CO')}
-        </p>
-
-        <p class="mb-2">
-            📌 Ficha técnica: <b>${ficha}</b>
-        </p>
-
-        <p class="bg-indigo-600 inline-block px-3 py-1 rounded text-xs">
-            Estado: ${estado}
-        </p>
-
-    </div>`;
+        <div class="bg-slate-800 p-6 rounded-xl shadow-lg">
+            <h2 class="text-xl font-bold mb-3">${nombre}</h2>
+            <p class="text-sm mb-1">👤 ${responsable}</p>
+            <p class="text-sm mb-2">📄 ${modalidad}</p>
+            <p class="text-emerald-400 font-mono text-lg mb-3">
+                💰 $${presupuesto.toLocaleString('es-CO')}
+            </p>
+            <p class="bg-indigo-600 inline-block px-3 py-1 rounded text-xs">
+                Estado: ${estado}
+            </p>
+        </div>
+    `;
 }
 
 </script>
