@@ -1,6 +1,86 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>OTIC</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-slate-900 text-white p-6"><div class="max-w-3xl mx-auto"><h1 class="text-2xl font-bold mb-4">📊 Proyecto (Prueba)</h1><input id="url" placeholder="Pega URL CSV aquí" class="w-full p-3 text-black rounded mb-4"><button onclick="load()" class="bg-indigo-600 px-4 py-2 rounded">Cargar</button><div id="card" class="mt-6"></div></div><script>function load(){const u=document.getElementById("url").value;localStorage.setItem("csv",u);render()}async function render(){const url=localStorage.getItem("csv");if(!url)return;const res=await fetch(url);const csv=await res.text();const sep=csv.split("\n")[2].includes(";")?";":",";const rows=csv.split(/\r?\n/).map(r=>r.split(sep).map(c=>c.replace(/"/g,"").trim()));let r=null;for(let i=2;i<rows.length;i++){if(rows[i][2] && rows[i][2].length>3){r=rows[i];break}}if(!r)return;const nombre=r[2],modalidad=r[3],presupuesto=parseInt((r[4]||"").replace(/[^0-9]/g,''))||0,responsable=r[6],estado=r[8];document.getElementById("card").innerHTML=`<div class="bg-slate-800 p-6 rounded-xl"><h2 class="text-xl font-bold mb-2">${nombre}</h2><p class="text-sm">👤 ${responsable}</p><p class="text-sm">📄 ${modalidad}</p><p class="text-emerald-400 font-mono mb-4">$${presupuesto.toLocaleString('es-CO')}</p><p class="bg-indigo-600 inline-block px-3 py-1 rounded text-xs">Estado: ${estado}</p></div>`}window.onload=render;</script></body></html>
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>OTIC</title>https://cdn.tailwindcss.comscript></head>
 
+<body class="bg-slate-900 text-white p-6">
 
+<div class="max-w-3xl mx-auto">
+
+<h1 class="text-2xl font-bold mb-4">📊 Proyecto (Prueba)</h1>
+
+<input id="url" placeholder="Pega URL CSV aquí"
+class="w-full p-3 text-black rounded mb-4">
+
+<button onclick="load()" class="bg-indigo-600 px-4 py-2 rounded">
+Cargar
+</button>
+
+<div id="card" class="mt-6"></div>
+
+</div>
+
+<script>
+
+function load(){
+    const u = document.getElementById("url").value;
+    localStorage.setItem("csv", u);
+    render();
+}
+
+async function render(){
+
+    const url = localStorage.getItem("csv");
+    if(!url) return;
+
+    const res = await fetch(url);
+    const csv = await res.text();
+
+    // ✅ detectar separador correctamente
+    const firstLine = csv.split("\n").find(l => l.includes(",") || l.includes(";"));
+    const sep = firstLine.includes(";") ? ";" : ",";
+
+    // ✅ procesar filas sin depender de posición fija
+    const rows = csv.split(/\r?\n/)
+        .map(r => r.split(sep).map(c => c.replace(/"/g,"").trim()));
+
+    let r = null;
+
+    // ✅ buscar primer registro válido
+    for(let i = 1; i < rows.length; i++){
+        if(rows[i][2] && rows[i][2].length > 3){
+            r = rows[i];
+            break;
+        }
+    }
+
+    if(!r) return;
+
+    const nombre = r[2];
+    const modalidad = r[3];
+    const presupuesto = parseInt((r[4]||"").replace(/[^0-9]/g,'')) || 0;
+    const responsable = r[6];
+    const estado = r[8];
+
+    document.getElementById("card").innerHTML = `
+        <div class="bg-slate-800 p-6 rounded-xl">
+            <h2 class="text-xl font-bold mb-2">${nombre}</h2>
+            <p class="text-sm">👤 ${responsable}</p>
+            <p class="text-sm">📄 ${modalidad}</p>
+            <p class="text-emerald-400 font-mono mb-4">
+                $${presupuesto.toLocaleString('es-CO')}
+            </p>
+            <p class="bg-indigo-600 inline-block px-3 py-1 rounded text-xs">
+                Estado: ${estado}
+            </p>
+        </div>
+    `;
+}
+
+window.onload = render;
+
+</script>
+
+</body>
+</html>
+``
 
 
 
