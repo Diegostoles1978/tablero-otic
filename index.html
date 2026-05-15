@@ -1,10 +1,16 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>OTIC</title>https://cdn.tailwindcss.com</head>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>OTIC</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
 
 <body class="bg-slate-900 text-white p-6">
 
 <div class="max-w-3xl mx-auto">
 
-<h1 class="text-2xl font-bold mb-4">📊 Proyecto (Fijo)</h1>
+<h1 class="text-2xl font-bold mb-4">📊 Proyecto Correcto</h1>
 
 <button onclick="load()" class="bg-indigo-600 px-4 py-2 rounded mb-4">
 Cargar datos
@@ -23,29 +29,31 @@ async function load(){
     const res = await fetch(url + "&t=" + new Date().getTime());
     const csv = await res.text();
 
-    // dividir filas correctamente
     const rows = csv.split(/\r?\n/).map(r => r.split(","));
 
-    // ✅ fila 3 = índice 2
-    const r = rows[2];
+    const r = rows[2]; // fila 3
 
-    // ✅ columnas FIJAS según tu Excel
     const nombre = r[2];       // C
     const modalidad = r[3];    // D
-    const presupuesto = parseFloat(r[4]) || 0; // E
+    
+    // ✅ limpiar presupuesto correctamente
+    const presupuesto = parseFloat(
+        (r[4] || "").replace(/[^0-9.]/g, "")
+    ) || 0;
+
     const ficha = r[5];        // F
     const responsable = r[6];  // G
     const estado = r[8];       // I
 
     document.getElementById("card").innerHTML = `
-    <div class="bg-slate-800 p-6 rounded-xl">
+    <div class="bg-slate-800 p-6 rounded-xl shadow-lg">
 
         <h2 class="text-xl font-bold mb-2">${nombre}</h2>
 
         <p class="text-sm">👤 ${responsable}</p>
         <p class="text-sm">📄 ${modalidad}</p>
 
-        <p class="text-emerald-400 font-mono mb-4">
+        <p class="text-emerald-400 font-mono mb-4 text-lg">
             💰 $${presupuesto.toLocaleString('es-CO')}
         </p>
 
@@ -62,7 +70,9 @@ async function load(){
 
 </script>
 
-</body></html>
+</body>
+</html>
+``
 
 
 
